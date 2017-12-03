@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import rospy
+import std_msgs.msg
 from geometry_msgs.msg import PoseStamped
 from styx_msgs.msg import Lane, Waypoint
 
@@ -27,7 +28,7 @@ FREQUENCY = 20
 
 class WaypointUpdater(object):
     def __init__(self):
-        rospy.init_node('waypoint_updater')
+        rospy.init_node('waypoint_updater', log_level=rospy.DEBUG)
 
         rospy.Subscriber('/current_pose', PoseStamped, self.pose_cb)
         self.bwp_subscription = rospy.Subscriber('/base_waypoints', Lane, self.waypoints_cb)
@@ -67,6 +68,7 @@ class WaypointUpdater(object):
 
 	    """
         self.current_pos = msg.pose
+        self.is_initialized = True and len(self.base_waypoints) > 0
 
     def waypoints_cb(self, waypoints):
         """
@@ -105,7 +107,7 @@ class WaypointUpdater(object):
         # at the beginning should be sufficient
         if len(self.base_waypoints) == 0:
             self.base_waypoints = waypoints.waypoints
-            self.is_initialized = True
+            self.is_initialized = True and self.current_pos != None
 
     def traffic_cb(self, msg):
         # TODO: Callback for /traffic_waypoint message. Implement
@@ -116,38 +118,33 @@ class WaypointUpdater(object):
         pass
 
     def run(self):
-
         rate = rospy.Rate(FREQUENCY)
         while not rospy.is_shutdown():
-            if self.is_initialized and self.current_pos != None:
-                next_wp_id = self.get_next_waypoint(self.current_pos)
+            if self.is_initialized:
+                self.next_wp_idx = self.get_next_waypoint(self.current_pos)
 
                 # TODO: check overflow
                 #if next_wp_id + LOOKAHEAD_WPS > len(self.base_waypoints):
                 #   THEN take all wps until the end and continue with at the beginning
 
-                final_wps = self.base_waypoints[next_wp_id:next_wp_id+LOOKAHEAD_WPS]
+                final_wps = self.base_waypoints[self.next_wp_idx:self.next_wp_idx+LOOKAHEAD_WPS]
                 self.publish_final_waypoints(final_wps)
 
             rate.sleep()
 
     def publish_final_waypoints(self, final_waypoints):
         msg = Lane()
-        msg.header.seq = self.msg_seq
-        msg.header.stamp = rospy.Time.now()
-        msg.header.frame_id = '/world'
+        msg.header = self.create_header()
         msg.waypoints = final_waypoints
         self.final_waypoints_pub.publish(msg)
+
+    def create_header(self):
+        header = std_msgs.msg.Header()
+        header.seq = self.msg_seq
+        header.stamp = rospy.Time.now()
+        header.frame_id = '/world'
         self.msg_seq += 1
-
-        #print("published #final_waypoints: {0}, #frame {1}".format(len(final_waypoints), self.msg_seq))
-        print("Published: ", msg.waypoints[0])
-
-    def create_header(self, msg):
-        msg.header.seq = self.msg_seq
-        msg.header.stamp = rospy.Time.now()
-        msg.header.frame_id = '/world'
-        return msg
+        return header
 
     def get_closest_waypoint(self, x, y):
         """
@@ -159,16 +156,26 @@ class WaypointUpdater(object):
         closest_len = 100000.0;
         closest_waypoint_idx = -1;
 
+        start_idx = 0 if self.next_wp_idx == -1 else self.next_wp_idx
+
+        wp_x = 0
+        wp_y = 0
         # Iterate over all waypoints and calculate the distance
-        for i in range(len(self.base_waypoints)):
+        for i in range(start_idx, len(self.base_waypoints)):
             wp_pose = self.base_waypoints[i].pose.pose.position
             dist = math.sqrt((wp_pose.x-x)**2 + (wp_pose.y-y)**2)
 
             if dist < closest_len:
                 closest_waypoint_idx = i
                 closest_len = dist
+                wp_x = wp_pose.x
+                wp_y = wp_pose.y
 
         # TODO: Check waypoint_idx. Could be still -1!!
+
+
+        rospy.logdebug("Current position: ({0},{1})".format(x, y))
+        rospy.logdebug("Closest waypoint: ({0},{1})".format(wp_x, wp_y))
 
         return closest_waypoint_idx
 
