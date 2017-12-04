@@ -4,6 +4,7 @@ import rospy
 import std_msgs.msg
 from geometry_msgs.msg import PoseStamped
 from styx_msgs.msg import Lane, Waypoint
+from std_msgs.msg import Int32
 
 import math
 
@@ -33,7 +34,7 @@ class WaypointUpdater(object):
         rospy.Subscriber('/current_pose', PoseStamped, self.pose_cb)
         self.bwp_subscription = rospy.Subscriber('/base_waypoints', Lane, self.waypoints_cb)
 
-        # TODO: Add a subscriber for /traffic_waypoint and /obstacle_waypoint below
+        rospy.Subscriber('/traffic_waypoint', Int32, self.traffic_cb)
 
         self.final_waypoints_pub = rospy.Publisher('final_waypoints', Lane, queue_size=1)
 
@@ -43,6 +44,7 @@ class WaypointUpdater(object):
         self.current_pos = None
         self.next_wp_idx = -1
         self.msg_seq = 0
+        self.next_tl_wp = -1 # waypoint index of the next upcoming traffic light
 
         self.run()
 
@@ -69,7 +71,10 @@ class WaypointUpdater(object):
 
 	    """
         self.current_pos = msg.pose
-        #self.is_initialized = True and len(self.base_waypoints) > 0
+        # rospy.loginfo("cur_pos, {0}, {1}, {2}, {3}, {4}, {5}, {6}"
+        #               .format(self.current_pos.position.x, self.current_pos.position.y, self.current_pos.position.z,
+        #                       self.current_pos.orientation.x, self.current_pos.orientation.y,
+        #                       self.current_pos.orientation.z, self.current_pos.orientation.w))
 
     def waypoints_cb(self, waypoints):
         """
@@ -112,8 +117,8 @@ class WaypointUpdater(object):
             #self.is_initialized = True and self.current_pos != None
 
     def traffic_cb(self, msg):
-        # TODO: Callback for /traffic_waypoint message. Implement
-        pass
+        self.next_tl_wp = msg
+        rospy.logdebug("Next traffic light wp: {0}".format(msg))
 
     def obstacle_cb(self, msg):
         # TODO: Callback for /obstacle_waypoint message. We will implement it later
@@ -124,11 +129,19 @@ class WaypointUpdater(object):
         while not rospy.is_shutdown():
             if self.current_pos != None and len(self.base_waypoints) > 0:
                 self.next_wp_idx = self.get_next_waypoint(self.current_pos)
-
-                if (self.next_wp_idx + LOOKAHEAD_WPS > self.num_wps):
-                    rospy.logdebug("New round has started")
-
                 final_wps = [self.base_waypoints[(i + self.next_wp_idx) % self.num_wps] for i in range(LOOKAHEAD_WPS)]
+
+                # if (self.next_wp_idx + LOOKAHEAD_WPS) > self.num_wps:
+                #     rospy.logdebug("Heading towards end of round: next_wp_idx: {0}, #final_waypoints {1}"
+                #                    .format(self.next_wp_idx,len(final_wps)))
+                #     for wp in final_wps:
+                #         wp_x = wp.pose.pose.position.x
+                #         wp_y = wp.pose.pose.position.y
+                #         rospy.logdebug("Next WP, {0}, {1}".format(wp_x, wp_y))
+
+
+                # TODO: Check if there is a traffic light in front of us
+
                 self.publish_final_waypoints(final_wps)
 
             rate.sleep()
@@ -199,11 +212,14 @@ class WaypointUpdater(object):
         heading = math.atan2((wp_y - car_y), (wp_x - car_x));
         angle = abs(car_theta - heading);
 
-        if angle > math.pi/4:
-            closest_wp_idx += 1
-
         rospy.logdebug("curr_pos: ({0},{1}), closest_wp_idx: {2}, closest_wp: ({3},{4})"
                        .format(car_x, car_y, closest_wp_idx, wp_x, wp_y))
+
+        if angle > math.pi/4:
+            closest_wp_idx += 1
+            #rospy.logdebug("Angle: {0} greater PI/4, new_wp_idx {1}".format(angle, closest_wp_idx))
+
+
         return closest_wp_idx;
 
     def get_waypoint_velocity(self, waypoint):
