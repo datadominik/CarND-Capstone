@@ -39,6 +39,7 @@ class WaypointUpdater(object):
 
         self.is_initialized = False
         self.base_waypoints = []
+        self.num_wps = -1
         self.current_pos = None
         self.next_wp_idx = -1
         self.msg_seq = 0
@@ -68,7 +69,7 @@ class WaypointUpdater(object):
 
 	    """
         self.current_pos = msg.pose
-        self.is_initialized = True and len(self.base_waypoints) > 0
+        #self.is_initialized = True and len(self.base_waypoints) > 0
 
     def waypoints_cb(self, waypoints):
         """
@@ -107,7 +108,8 @@ class WaypointUpdater(object):
         # at the beginning should be sufficient
         if len(self.base_waypoints) == 0:
             self.base_waypoints = waypoints.waypoints
-            self.is_initialized = True and self.current_pos != None
+            self.num_wps = len(self.base_waypoints)
+            #self.is_initialized = True and self.current_pos != None
 
     def traffic_cb(self, msg):
         # TODO: Callback for /traffic_waypoint message. Implement
@@ -120,14 +122,13 @@ class WaypointUpdater(object):
     def run(self):
         rate = rospy.Rate(FREQUENCY)
         while not rospy.is_shutdown():
-            if self.is_initialized:
+            if self.current_pos != None and len(self.base_waypoints) > 0:
                 self.next_wp_idx = self.get_next_waypoint(self.current_pos)
 
-                # TODO: check overflow
-                #if next_wp_id + LOOKAHEAD_WPS > len(self.base_waypoints):
-                #   THEN take all wps until the end and continue with at the beginning
+                if (self.next_wp_idx + LOOKAHEAD_WPS > self.num_wps):
+                    rospy.logdebug("New round has started")
 
-                final_wps = self.base_waypoints[self.next_wp_idx:self.next_wp_idx+LOOKAHEAD_WPS]
+                final_wps = [self.base_waypoints[(i + self.next_wp_idx) % self.num_wps] for i in range(LOOKAHEAD_WPS)]
                 self.publish_final_waypoints(final_wps)
 
             rate.sleep()
@@ -160,22 +161,21 @@ class WaypointUpdater(object):
 
         wp_x = 0
         wp_y = 0
-        # Iterate over all waypoints and calculate the distance
-        for i in range(start_idx, len(self.base_waypoints)):
-            wp_pose = self.base_waypoints[i].pose.pose.position
+        # Iterate over all waypoints and calculate the distance. Take possible overflows into account!!!
+        for i in range(self.num_wps):
+            next_idx = (i + start_idx) % self.num_wps
+            wp_pose = self.base_waypoints[next_idx].pose.pose.position
             dist = math.sqrt((wp_pose.x-x)**2 + (wp_pose.y-y)**2)
 
             if dist < closest_len:
-                closest_waypoint_idx = i
+                closest_waypoint_idx = next_idx
                 closest_len = dist
                 wp_x = wp_pose.x
                 wp_y = wp_pose.y
 
         # TODO: Check waypoint_idx. Could be still -1!!
-
-
-        rospy.logdebug("Current position: ({0},{1})".format(x, y))
-        rospy.logdebug("Closest waypoint: ({0},{1})".format(wp_x, wp_y))
+        if closest_waypoint_idx == -1:
+            ropsy.logerror("Couldn't find closest waypoint")
 
         return closest_waypoint_idx
 
@@ -202,6 +202,8 @@ class WaypointUpdater(object):
         if angle > math.pi/4:
             closest_wp_idx += 1
 
+        rospy.logdebug("curr_pos: ({0},{1}), closest_wp_idx: {2}, closest_wp: ({3},{4})"
+                       .format(car_x, car_y, closest_wp_idx, wp_x, wp_y))
         return closest_wp_idx;
 
     def get_waypoint_velocity(self, waypoint):
