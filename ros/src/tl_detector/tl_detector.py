@@ -9,6 +9,7 @@ from cv_bridge import CvBridge
 from light_classification.tl_classifier import TLClassifier
 import tf
 import cv2
+import numpy as np
 import yaml
 
 STATE_COUNT_THRESHOLD = 3
@@ -90,6 +91,18 @@ class TLDetector(object):
             self.upcoming_red_light_pub.publish(Int32(self.last_wp))
         self.state_count += 1
 
+    def get_coordinates(self, poi):
+        x = poi.position.x
+        y = poi.position.y
+        z = poi.position.z
+        return x, y, z
+
+    def get_distance(self, poi_1, poi_2):
+        x1, y1, z1 = poi_1
+        x2, y2, z2 = poi_2
+        dist = np.sqrt((x1-x2)**2 + (y1-y2)**2 + (z1-z2)**2)
+        return dist
+
     def get_closest_waypoint(self, pose):
         """Identifies the closest path waypoint to the given position
             https://en.wikipedia.org/wiki/Closest_pair_of_points_problem
@@ -100,8 +113,13 @@ class TLDetector(object):
             int: index of the closest waypoint in self.waypoints
 
         """
-        #TODO implement
-        return 0
+
+        ### TBD - error handling if waypoints are not yet available
+        dist = [self.get_distance(self.get_coordinates(pose), self.get_coordinates(waypoint.pose.pose))
+                for waypoint in self.waypoints.waypoints]
+
+        min_idx = np.argmin(dist)
+        return min_idx
 
     def get_light_state(self, light):
         """Determines the current color of the traffic light
@@ -138,13 +156,14 @@ class TLDetector(object):
         if(self.pose):
             car_position = self.get_closest_waypoint(self.pose.pose)
 
+        print(car_position)
         #TODO find the closest visible traffic light (if one exists)
         light_wp = None
 
         if light:
             state = self.get_light_state(light)
             return light_wp, state
-        self.waypoints = None
+        #self.waypoints = None
         return -1, TrafficLight.UNKNOWN
 
 if __name__ == '__main__':
