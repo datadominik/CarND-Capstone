@@ -23,7 +23,7 @@ as well as to verify your TL classifier.
 TODO (for Yousuf and Aaron): Stopline location for each traffic light.
 '''
 
-LOOKAHEAD_WPS = 50  # Number of waypoints we will publish. You can change this number
+LOOKAHEAD_WPS = 100  # Number of waypoints we will publish. You can change this number
 FREQUENCY = 20      # Update rate in Hz
 
 # The car's state
@@ -32,8 +32,7 @@ DRIVE = 1       # The car will be in the DRIVE state as long as there is no RED 
 STOPPING = 2    # The car will be in the STOPPING state if a RED traffic light has been detected. It will stay in
                 # this state until the traffic light is GREEN again.
 
-SAFETY_DISTANCE = 10    # The safety distance to the traffic light.
-                        # This is 10m in germany as long as there is not stop line
+SAFETY_DISTANCE = 2  # Safety distance to the closest waypoint of the traffic light stopline
 
 class WaypointUpdater(object):
     def __init__(self):
@@ -131,7 +130,9 @@ class WaypointUpdater(object):
     def traffic_cb(self, msg):
         self.next_tl_wp = msg.data
         self.update_state()
-        rospy.logdebug("Next traffic light wp: {0}".format(msg.data))
+
+        # if msg.data != -1:
+        #     rospy.logdebug("Next traffic light wp: {0}".format(msg.data))
 
     def obstacle_cb(self, msg):
         # TODO: Callback for /obstacle_waypoint message. We will implement it later
@@ -168,6 +169,8 @@ class WaypointUpdater(object):
         while not rospy.is_shutdown():
             if self.current_state == DRIVE:
                 final_wps = self.get_final_waypoints()
+                for i in range(LOOKAHEAD_WPS):
+                    self.set_waypoint_velocity(final_wps, i, 11.1)
                 self.publish_final_waypoints(final_wps)
 
             elif self.current_state == STOPPING:
@@ -191,8 +194,6 @@ class WaypointUpdater(object):
                     rospy.logwarn("Traffic wp is not in final_waypoints list: {0} <= {1} < {2}"
                                    .format(self.next_wp_idx, self.next_tl_wp, self.next_wp_idx + LOOKAHEAD_WPS))
 
-                rospy.logdebug("In STOPPING state")
-
             rate.sleep()
 
     def get_final_waypoints(self):
@@ -202,14 +203,14 @@ class WaypointUpdater(object):
 
     def slow_down(self, final_wps, tl_wp_idx, safety_dist):
         """
-        Deccelerates
+        Deccelerates until vehicle has stopped.
         :param final_wps: final waypoints
         :param tl_wp_idx: traffic light index in the final_wps list
         :param safety_dist: a safety distance to the traffic light. we should definitely stop there
         :return:
         """
         len_fwps = len(final_wps)
-        asser(len_fwps > tl_wp_idx)
+        assert(len_fwps > tl_wp_idx)
 
         # Get velocity of the first wp in final_wps
         wp_v = self.get_waypoint_velocity(final_wps[0])
@@ -219,7 +220,7 @@ class WaypointUpdater(object):
         # iterate over final_waypoints in reversed order
         # set velocity to 0 in all waypoints up to the tl_wp_idx - safety_dist
         for i in range(len_fwps-1, 0, -1):
-            # waypoint if after traffic light waypoint
+            # waypoint is after traffic light waypoint
             if i >= tl_wp_idx:
                 self.set_waypoint_velocity(final_wps, i, 0.0)
             # waypoint is within the safety distance
@@ -245,7 +246,7 @@ class WaypointUpdater(object):
                 t = math.sqrt((2.0*s)/a)
                 v = a * t
 
-                rospy.logdebug("s:{0}, t:{1}, v:{2}, a:{3}".format(s,t,v,a))
+                rospy.loginfo("s:{0}, t:{1}, v:{2}, a:{3}".format(s,t,v,a))
 
                 # TODO: check if we have already reached the speed limit
                 self.set_waypoint_velocity(final_wps, i, v)
@@ -318,8 +319,8 @@ class WaypointUpdater(object):
         heading = math.atan2((wp_y - car_y), (wp_x - car_x));
         angle = abs(car_theta - heading);
 
-        rospy.logdebug("curr_pos: ({0},{1}), closest_wp_idx: {2}, closest_wp: ({3},{4})"
-                       .format(car_x, car_y, closest_wp_idx, wp_x, wp_y))
+        # rospy.logdebug("curr_pos: ({0},{1}), closest_wp_idx: {2}, closest_wp: ({3},{4})"
+        #                .format(car_x, car_y, closest_wp_idx, wp_x, wp_y))
 
         if angle > math.pi/4:
             closest_wp_idx += 1
