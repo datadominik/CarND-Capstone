@@ -22,6 +22,7 @@ class TLDetector(object):
         self.waypoints = None
         self.camera_image = None
         self.lights = []
+        self.MIN_DIST_THRESHOLD = 100
 
         sub1 = rospy.Subscriber('/current_pose', PoseStamped, self.pose_cb)
         sub2 = rospy.Subscriber('/base_waypoints', Lane, self.waypoints_cb)
@@ -154,16 +155,24 @@ class TLDetector(object):
         # List of positions that correspond to the line to stop in front of for a given intersection
         stop_line_positions = self.config['stop_line_positions']
         if(self.pose):
-            car_position = self.get_closest_waypoint(self.pose.pose)
+            car_waypoint = self.get_closest_waypoint(self.pose.pose)
+            car_position = self.get_coordinates(self.pose.pose)
 
-        print(car_position)
-        #TODO find the closest visible traffic light (if one exists)
-        light_wp = None
+            dist = np.array([self.get_distance(np.array(car_position), self.get_coordinates(light.pose.pose)) for light in self.lights])
+            min_dist_idx = np.argmin(dist)
+            min_dist = np.min(dist)
+            light = self.lights[min_dist_idx]
 
-        if light:
-            state = self.get_light_state(light)
-            return light_wp, state
-        #self.waypoints = None
+            light_waypoint = self.get_closest_waypoint(light.pose.pose)
+
+
+            if min_dist < self.MIN_DIST_THRESHOLD and car_waypoint < light_waypoint:
+                # traffic light ahead
+                state = self.get_light_state(light)
+                return light_waypoint, state
+            else:
+                return -1, TrafficLight.UNKNOWN
+
         return -1, TrafficLight.UNKNOWN
 
 if __name__ == '__main__':
