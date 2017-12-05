@@ -29,7 +29,7 @@ FREQUENCY = 20      # Update rate in Hz
 # The car's state
 NONE = 0        # Stays in this state until the base_waypoints and the first position habe been received
 DRIVE = 1       # The car will be in the DRIVE state as long as there is no RED traffic light in front of it
-STOPPING = 2    # The car will be in the STOPPING state if a RED traffic light has been detected. It will stay in
+STOPPING = 5    # The car will be in the STOPPING state if a RED traffic light has been detected. It will stay in
                 # this state until the traffic light is GREEN again.
 
 SAFETY_DISTANCE = 2  # Safety distance to the closest waypoint of the traffic light stopline
@@ -148,20 +148,20 @@ class WaypointUpdater(object):
         if self.current_state == NONE:
             if self.current_pos is not None and len(self.base_waypoints) > 0 and self.next_tl_wp == -1:
                 self.current_state = DRIVE
-                rospy.logdebug("NONE -> DRIVE")
+                rospy.loginfo("NONE -> DRIVE")
             elif self.current_pos is not None and len(self.base_waypoints) > 0 and self.next_tl_wp > -1:
                 self.current_state = STOPPING
-                rospy.logdebug("NONE -> STOPPING")
+                rospy.loginfo("NONE -> STOPPING")
 
         if self.current_state == DRIVE:
             if self.next_tl_wp > -1:
                 self.current_state = STOPPING
-                rospy.logdebug("DRIVE -> STOPPING")
+                rospy.loginfo("DRIVE -> STOPPING")
 
         if self.current_state == STOPPING:
             if self.next_tl_wp == -1:
                 self.current_state = DRIVE
-                rospy.logdebug("STOPPING -> DRIVE")
+                rospy.loginfo("STOPPING -> DRIVE")
 
 
     def run(self):
@@ -184,8 +184,8 @@ class WaypointUpdater(object):
 
                 # check if tl_wp is in the final_wps
                 if self.next_wp_idx <= self.next_tl_wp and self.next_wp_idx < self.next_wp_idx + LOOKAHEAD_WPS:
-                    rospy.logdebug("Traffic wp is in final_waypoints list: {0} <= {1} < {2}"
-                                   .format(self.next_wp_idx, self.next_tl_wp, self.next_wp_idx + LOOKAHEAD_WPS))
+                    # rospy.logdebug("Traffic wp is in final_waypoints list: {0} <= {1} < {2}"
+                    #                .format(self.next_wp_idx, self.next_tl_wp, self.next_wp_idx + LOOKAHEAD_WPS))
 
                     # traffic light waypoint index in the final_weypoints list
                     tl_wp_idx_in_fwps = self.next_tl_wp - self.next_wp_idx
@@ -193,6 +193,11 @@ class WaypointUpdater(object):
                 else:
                     rospy.logwarn("Traffic wp is not in final_waypoints list: {0} <= {1} < {2}"
                                    .format(self.next_wp_idx, self.next_tl_wp, self.next_wp_idx + LOOKAHEAD_WPS))
+
+                for i in range(len(final_wps)):
+                    rospy.loginfo("wp {0}, v : {1}".format(self.next_wp_idx + i, self.get_waypoint_velocity(final_wps[i])))
+
+                self.publish_final_waypoints(final_wps)
 
             rate.sleep()
 
@@ -212,14 +217,11 @@ class WaypointUpdater(object):
         len_fwps = len(final_wps)
         assert(len_fwps > tl_wp_idx)
 
-        # Get velocity of the first wp in final_wps
-        wp_v = self.get_waypoint_velocity(final_wps[0])
-
         stop_wp_idx = -1
 
         # iterate over final_waypoints in reversed order
         # set velocity to 0 in all waypoints up to the tl_wp_idx - safety_dist
-        for i in range(len_fwps-1, 0, -1):
+        for i in range(len_fwps-1, -1, -1):
             # waypoint is after traffic light waypoint
             if i >= tl_wp_idx:
                 self.set_waypoint_velocity(final_wps, i, 0.0)
@@ -236,7 +238,7 @@ class WaypointUpdater(object):
                 s = self.distance(final_wps, i, stop_wp_idx)
 
                 # TODO: get real a from global param settings
-                a = 3.0
+                a = 5.0
 
                 # how fast can we go with const acceleration
                 # s = (a*t^2) / 2
@@ -244,13 +246,12 @@ class WaypointUpdater(object):
                 # v = a * t
 
                 t = math.sqrt((2.0*s)/a)
-                v = a * t
+                v = (a * t) * 0.44704
 
-                rospy.loginfo("s:{0}, t:{1}, v:{2}, a:{3}".format(s,t,v,a))
+                #rospy.loginfo("s:{0}, t:{1}, v:{2}, a:{3}".format(s,t,v,a))
 
                 # TODO: check if we have already reached the speed limit
                 self.set_waypoint_velocity(final_wps, i, v)
-
 
 
     def publish_final_waypoints(self, final_waypoints):
