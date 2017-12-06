@@ -36,7 +36,7 @@ SAFETY_DISTANCE = 30  # Safety distance to the closest waypoint of the traffic l
 
 class WaypointUpdater(object):
     def __init__(self):
-        rospy.init_node('waypoint_updater', log_level=rospy.DEBUG)
+        rospy.init_node('waypoint_updater', log_level=rospy.INFO)
 
         # Subscriptions
         self.bwp_subscription = rospy.Subscriber('/base_waypoints', Lane, self.waypoints_cb)
@@ -116,13 +116,11 @@ class WaypointUpdater(object):
             elif self.current_pos is not None and len(self.base_waypoints) > 0 and self.next_tl_wp > -1:
                 self.current_state = STOPPING
                 rospy.loginfo("NONE -> STOPPING, TL AT WP: " + str(self.next_tl_wp))
-
-        if self.current_state == DRIVE:
+        elif self.current_state == DRIVE:
             if self.next_tl_wp > -1:
                 self.current_state = STOPPING
                 rospy.loginfo("DRIVE -> STOPPING TL AT WP: " + str(self.next_tl_wp))
-
-        if self.current_state == STOPPING:
+        elif self.current_state == STOPPING:
             if self.next_tl_wp == -1:
                 self.current_state = DRIVE
                 rospy.loginfo("STOPPING -> DRIVE")
@@ -133,15 +131,10 @@ class WaypointUpdater(object):
         while not rospy.is_shutdown():
             if self.current_state == DRIVE:
                 final_wps = self.get_final_waypoints()
+
                 v_curr = self.get_waypoint_velocity(final_wps[0])
                 v_start = v_curr if v_curr > 0.00001 else 1.0
                 self.accelerate(final_wps, v_start)
-
-                # if self.prev_wp_idx != self.next_wp_idx:
-                #     log = []
-                #     for i in range(len(final_wps)):
-                #         log.append("driving: wp {0}, v : {1}".format(self.next_wp_idx + i, self.get_waypoint_velocity(final_wps[i])))
-                #     rospy.logdebug('\n'.join(log))
 
                 self.publish_final_waypoints(final_wps)
 
@@ -155,12 +148,6 @@ class WaypointUpdater(object):
                 else:
                     rospy.logwarn("Traffic wp is not in final_waypoints list: {0} <= {1} < {2}"
                                    .format(self.next_wp_idx, self.next_tl_wp, self.next_wp_idx + LOOKAHEAD_WPS))
-
-                # if self.prev_wp_idx != self.next_wp_idx:
-                #     log = []
-                #     for i in range(len(final_wps)):
-                #         log.append("stopping: wp {0}, v : {1}".format(self.next_wp_idx + i, self.get_waypoint_velocity(final_wps[i])))
-                #     rospy.logdebug('\n'.join(log))
 
                 self.publish_final_waypoints(final_wps)
 
