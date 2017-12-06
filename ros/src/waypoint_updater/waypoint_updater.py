@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import threading
 import rospy
 import std_msgs.msg
 from geometry_msgs.msg import PoseStamped
@@ -61,6 +62,8 @@ class WaypointUpdater(object):
         self.msg_seq = 0
         self.next_tl_wp = -1 # waypoint index of the next upcoming traffic light
 
+        self.lock = threading.Lock()
+
         # Start processing loop
         self.run()
 
@@ -92,11 +95,10 @@ class WaypointUpdater(object):
             self.update_state()
 
     def traffic_cb(self, msg):
-        self.next_tl_wp = msg.data
+        with self.lock:
+            self.next_tl_wp = msg.data
         self.update_state()
 
-        # if msg.data != -1:
-        #     rospy.logdebug("Next traffic light wp: {0}".format(msg.data))
 
     def obstacle_cb(self, msg):
         # TODO: Callback for /obstacle_waypoint message. We will implement it later
@@ -139,17 +141,22 @@ class WaypointUpdater(object):
                 self.publish_final_waypoints(final_wps)
 
             elif self.current_state == STOPPING:
-                final_wps = self.get_final_waypoints()
+                with self.lock:
+                    _next_tl_wp_idx = self.next_tl_wp
 
-                # check if tl_wp is in the final_wps
-                if self.next_wp_idx <= self.next_tl_wp and self.next_wp_idx < self.next_wp_idx + LOOKAHEAD_WPS:
-                    tl_wp_idx_in_fwps = self.next_tl_wp - self.next_wp_idx
-                    self.deccelerate(final_wps, tl_wp_idx_in_fwps, SAFETY_DISTANCE)
+                if _next_tl_wp_idx > -1:
+                    final_wps = self.get_final_waypoints()
+
+                    # check if tl_wp is in the final_wps
+                    if self.next_wp_idx <= _next_tl_wp_idx < self.next_wp_idx + LOOKAHEAD_WPS:
+                        tl_wp_idx_in_fwps = _next_tl_wp_idx - self.next_wp_idx
+                        self.deccelerate(final_wps, tl_wp_idx_in_fwps, SAFETY_DISTANCE)
+                        self.publish_final_waypoints(final_wps)
+                    else:
+                        rospy.logwarn("Traffic wp is not in final_waypoints list: {0} <= {1} < {2}"
+                                       .format(self.next_wp_idx, _next_tl_wp_idx, self.next_wp_idx + LOOKAHEAD_WPS))
                 else:
-                    rospy.logwarn("Traffic wp is not in final_waypoints list: {0} <= {1} < {2}"
-                                   .format(self.next_wp_idx, self.next_tl_wp, self.next_wp_idx + LOOKAHEAD_WPS))
-
-                self.publish_final_waypoints(final_wps)
+                    rospy.logwarn("Invalid traffic waypoint index: " + _next_tl_wp_idx)
 
             rate.sleep()
 
