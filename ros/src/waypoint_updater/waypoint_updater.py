@@ -23,8 +23,8 @@ as well as to verify your TL classifier.
 TODO (for Yousuf and Aaron): Stopline location for each traffic light.
 '''
 
-LOOKAHEAD_WPS = 150  # Number of waypoints we will publish. You can change this number
-FREQUENCY = 20      # Update rate in Hz
+LOOKAHEAD_WPS = 200  # Number of waypoints we will publish. You can change this number
+FREQUENCY = 10        # Update rate in Hz
 
 # The car's state
 NONE = 0        # Stays in this state until the base_waypoints and the first position habe been received
@@ -32,7 +32,7 @@ DRIVE = 1       # The car will be in the DRIVE state as long as there is no RED 
 STOPPING = 2    # The car will be in the STOPPING state if a RED traffic light has been detected. It will stay in
                 # this state until the traffic light is GREEN again.
 
-SAFETY_DISTANCE = 30  # Safety distance to the closest waypoint of the traffic light stopline
+SAFETY_DISTANCE = 25  # Safety distance to the closest waypoint of the traffic light stopline
 
 class WaypointUpdater(object):
     def __init__(self):
