@@ -1,7 +1,7 @@
 from styx_msgs.msg import TrafficLight
 from base_model import *
 from tf_model import *
-
+import rospy
 class TLClassifier(object):
     def __init__(self):
         #self.model = BaseModel()
@@ -17,6 +17,9 @@ class TLClassifier(object):
             int: ID of traffic light color (specified in styx_msgs/TrafficLight)
 
         """
+        start = time.time()
         pred = self.model.predict(image)
 
+        end = time.time()
+        rospy.logwarn("Prediction time: {}".format(start-end))
         return pred
