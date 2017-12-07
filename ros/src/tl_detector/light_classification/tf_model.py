@@ -62,18 +62,19 @@ class TrafficLightModel():
                 tl_idxs = np.where(classes == 10)
                 scores = scores[tl_idxs]
                 boxes = boxes[tl_idxs]
-                top_score = np.where(scores > 0.2)
+                top_score = np.where(scores > 0.1)
                 boxes = boxes[top_score]
 
-                for box in boxes:
-                    ymin = int(box[0] * img_height)
-                    ymax = int(box[2] * img_height)
-                    xmin = int(box[1] * img_width)
-                    xmax = int(box[3] * img_width)
-                    traffic_light = image_np[ymin:ymax, xmin:xmax]
-                    classification_imgs.append(traffic_light)
+                top_score = np.argmax(scores)
+                box = boxes[top_score]
 
-        if len(classification_imgs) > 0:
+                ymin = int(box[0] * img_height)
+                ymax = int(box[2] * img_height)
+                xmin = int(box[1] * img_width)
+                xmax = int(box[3] * img_width)
+                traffic_light = image_np[ymin:ymax, xmin:xmax]
+
+        if traffic_light is not None:
             print("traffic light detected")
             with self.classification_graph.as_default():
                 with tf.Session(graph=self.classification_graph) as sess:
@@ -81,16 +82,15 @@ class TrafficLightModel():
                     classification_tensor = self.classification_graph.get_tensor_by_name('out_0:0')
 
                     results = []
-                    for img in classification_imgs:
-                        img = imresize(img, (32, 32)).astype("float16")/255.
+                    img = imresize(traffic_light, (32, 32)).astype("float16")/255.
 
-                        image_np_expanded = np.expand_dims(img, axis=0)
-                        (classes) = sess.run(
-                            [classification_tensor],
-                            feed_dict={image_tensor: image_np_expanded})
-                        results.append(classes)
-                        imsave("img_debug/{}.jpg".format(light_strings[np.argmax(classes)]), img)
-                        return light_states[np.argmax(classes)]
+                    image_np_expanded = np.expand_dims(img, axis=0)
+                    (classes) = sess.run(
+                        [classification_tensor],
+                        feed_dict={image_tensor: image_np_expanded})
+                    #imsave("img_debug/{}.jpg".format(light_strings[np.argmax(classes)]), img)
+                    rospy.logwarn(light_strings[np.argmax(classes)])
+                    return light_states[np.argmax(classes)]
 
 
         return TrafficLight.UNKNOWN
