@@ -4,8 +4,8 @@ from tf_model import *
 
 class TLClassifier(object):
     def __init__(self):
-        self.model = BaseModel()
-        #self.model = TrafficLightModel()
+        #self.model = BaseModel()
+        self.model = TrafficLightModel()
 
     def get_classification(self, image):
         """Determines the color of the traffic light in the image

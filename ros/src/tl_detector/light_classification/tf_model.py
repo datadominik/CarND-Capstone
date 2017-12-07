@@ -3,7 +3,7 @@ import numpy as np
 import os
 import tensorflow as tf
 from scipy.misc import imresize
-
+import rospy
 cwd = os.path.dirname(os.path.realpath(__file__))
 
 
@@ -40,7 +40,7 @@ class TrafficLightModel():
         classification_imgs = []
 
         image = np.asarray(image, dtype="uint8")
-        image = image[..., [2, 0, 1]]
+        #image = image[..., [2, 0, 1]]
 
         print(image.mean())
         with self.detection_graph.as_default():
@@ -82,13 +82,14 @@ class TrafficLightModel():
 
                     results = []
                     for img in classification_imgs:
-                        img = imresize(img, (32, 32)).astype("float16")
+                        img = imresize(img, (32, 32)).astype("float16")/255.
                         image_np_expanded = np.expand_dims(img, axis=0)
                         (classes) = sess.run(
                             [classification_tensor],
                             feed_dict={image_tensor: image_np_expanded})
                         results.append(classes)
                     results = np.asarray(results).mean(axis=0)
+                    rospy.logdebug(results)
                     return light_states[np.argmax(results)]
 
         return TrafficLight.UNKNOWN
