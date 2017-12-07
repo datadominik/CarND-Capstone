@@ -2,7 +2,7 @@ from styx_msgs.msg import TrafficLight
 import numpy as np
 import os
 import tensorflow as tf
-from scipy.misc import imresize
+from scipy.misc import imresize, imsave
 import rospy
 cwd = os.path.dirname(os.path.realpath(__file__))
 
@@ -62,7 +62,7 @@ class TrafficLightModel():
                 tl_idxs = np.where(classes == 10)
                 scores = scores[tl_idxs]
                 boxes = boxes[tl_idxs]
-                top_score = np.where(scores > 0.1)
+                top_score = np.where(scores > 0.2)
                 boxes = boxes[top_score]
 
                 for box in boxes:
@@ -83,13 +83,14 @@ class TrafficLightModel():
                     results = []
                     for img in classification_imgs:
                         img = imresize(img, (32, 32)).astype("float16")/255.
+
                         image_np_expanded = np.expand_dims(img, axis=0)
                         (classes) = sess.run(
                             [classification_tensor],
                             feed_dict={image_tensor: image_np_expanded})
                         results.append(classes)
-                    results = np.asarray(results).mean(axis=0)
-                    rospy.logdebug(results)
-                    return light_states[np.argmax(results)]
+                        imsave("img_debug/{}.jpg".format(light_strings[np.argmax(classes)]), img)
+                        return light_states[np.argmax(classes)]
+
 
         return TrafficLight.UNKNOWN
