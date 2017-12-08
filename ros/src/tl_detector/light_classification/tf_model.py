@@ -61,7 +61,7 @@ class TrafficLightModel():
             image_np = np.copy(image)
             img_height = image_np.shape[0]
             img_width = image_np.shape[1]
-            rospy.logwarn(image_np.shape)
+
             image_np_expanded = np.expand_dims(image_np, axis=0)
             (boxes, scores, classes, num) = self.det_sess.run(
                 [self.detection_boxes, self.detection_scores, self.detection_classes, self.num_detections],
@@ -70,7 +70,7 @@ class TrafficLightModel():
             tl_idxs = np.where(classes == 10)
             scores = scores[tl_idxs]
             boxes = boxes[tl_idxs]
-            top_score = np.where(scores > 0.1)
+            top_score = np.where(scores > 0.2)
             boxes = boxes[top_score]
 
             top_score = np.argmax(scores)

@@ -17,9 +17,9 @@ class TLClassifier(object):
             int: ID of traffic light color (specified in styx_msgs/TrafficLight)
 
         """
-        start = time.time()
+        #start = time.time()
         pred = self.model.predict(image)
 
-        end = time.time()
-        rospy.logwarn("Prediction time: {}".format(start-end))
+        #end = time.time()
+        #rospy.logwarn("Prediction time: {}".format(start-end))
         return pred

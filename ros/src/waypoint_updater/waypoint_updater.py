@@ -24,7 +24,7 @@ as well as to verify your TL classifier.
 TODO (for Yousuf and Aaron): Stopline location for each traffic light.
 '''
 
-LOOKAHEAD_WPS = 200  # Number of waypoints we will publish. You can change this number
+LOOKAHEAD_WPS = 75  # Number of waypoints we will publish. You can change this number
 FREQUENCY = 10        # Update rate in Hz
 
 # The car's state
@@ -283,7 +283,7 @@ class WaypointUpdater(object):
 
         # TODO: Check waypoint_idx. Could be still -1!!
         if closest_waypoint_idx == -1:
-            ropsy.logerror("Couldn't find closest waypoint")
+            rospy.logerror("Couldn't find closest waypoint")
 
         return closest_waypoint_idx
 
