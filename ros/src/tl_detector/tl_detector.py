@@ -12,7 +12,7 @@ import time
 import numpy as np
 import yaml
 
-STATE_COUNT_THRESHOLD = 3
+STATE_COUNT_THRESHOLD = 2
 
 class TLDetector(object):
     def __init__(self):
@@ -23,7 +23,6 @@ class TLDetector(object):
         self.camera_image = None
         self.lights = []
         self.MIN_DIST_THRESHOLD = 100
-
         config_string = rospy.get_param("/traffic_light_config")
         self.config = yaml.load(config_string)
 
@@ -36,6 +35,9 @@ class TLDetector(object):
         self.state = TrafficLight.UNKNOWN
         self.last_state = TrafficLight.UNKNOWN
         self.last_wp = -1
+        self.last_car_wp = -1
+        self.ignore_count = 0
+
         self.state_count = 0
 
         sub1 = rospy.Subscriber('/current_pose', PoseStamped, self.pose_cb)
@@ -75,6 +77,11 @@ class TLDetector(object):
 
         self.has_image = True
         self.camera_image = msg
+
+        self.ignore_count += 1
+        if self.ignore_count % 5 != 0:
+            return
+
         light_wp, state = self.process_traffic_lights()
 
         '''
@@ -83,6 +90,12 @@ class TLDetector(object):
         of times till we start using it. Otherwise the previous stable state is
         used.
         '''
+        if light_wp is not -1:
+            if state == TrafficLight.RED:
+                rospy.logwarn("RED")
+            elif state == TrafficLight.GREEN:
+                rospy.logwarn("GREEN")
+
         if self.state != state:
             self.state_count = 0
             self.state = state
@@ -162,6 +175,13 @@ class TLDetector(object):
             if(self.pose):
                 car_waypoint = self.get_closest_waypoint(self.pose.pose)
                 car_position = self.get_coordinates(self.pose.pose)
+
+                #if self.last_car_wp == car_waypoint:
+                #    self.detect = False
+                #else:
+                #    self.detect = True
+
+                #self.last_car_wp = car_waypoint
 
                 dist = np.array([self.get_distance(np.array(car_position), self.get_coordinates(light.pose.pose)) for light in self.lights])
                 min_dist_idx = np.argmin(dist)

@@ -48,52 +48,66 @@ class TrafficLightModel():
         self.image_tensor_class = self.classification_graph.get_tensor_by_name('conv2d_13_input_6:0')
         self.classification_tensor = self.classification_graph.get_tensor_by_name('out_0:0')
 
+        self.traffic_light = None
+
+        self.ymin = None
+        self.ymax = None
+        self.xmin = None
+        self.xmax = None
+
     def predict(self, image):
         light_states = [TrafficLight.GREEN, TrafficLight.RED, TrafficLight.YELLOW]
-        light_strings = ['GREEN', 'RED', 'YELLOW']
-        classification_imgs = []
 
         image = np.asarray(image, dtype="uint8")
 
+        image_np = imresize(image, (200, 150))
+        img_height = image_np.shape[0]
+        img_width = image_np.shape[1]
+
+        image_np_expanded = np.expand_dims(image_np, axis=0)
+
         with self.detection_graph.as_default():
-            traffic_light = None
 
-            image_np = np.copy(image)
-            img_height = image_np.shape[0]
-            img_width = image_np.shape[1]
-
-            image_np_expanded = np.expand_dims(image_np, axis=0)
             (boxes, scores, classes, num) = self.det_sess.run(
                 [self.detection_boxes, self.detection_scores, self.detection_classes, self.num_detections],
                 feed_dict={self.image_tensor_det: image_np_expanded})
 
             tl_idxs = np.where(classes == 10)
             scores = scores[tl_idxs]
+
+            if len(scores) == 0:
+                return
+
             boxes = boxes[tl_idxs]
             top_score = np.where(scores > 0.2)
+
+            if len(top_score) == 0:
+                return
+
             boxes = boxes[top_score]
 
             top_score = np.argmax(scores)
             box = boxes[top_score]
 
-            ymin = int(box[0] * img_height)
-            ymax = int(box[2] * img_height)
-            xmin = int(box[1] * img_width)
-            xmax = int(box[3] * img_width)
-            traffic_light = image_np[ymin:ymax, xmin:xmax]
+            self.ymin = int(box[0] * img_height)
+            self.ymax = int(box[2] * img_height)
+            self.xmin = int(box[1] * img_width)
+            self.xmax = int(box[3] * img_width)
+
+        self.traffic_light = image_np[self.ymin:self.ymax, self.xmin:self.xmax]
 
 
-        if traffic_light is not None:
+        if self.traffic_light is not None:
             print("traffic light detected")
             with self.classification_graph.as_default():
 
-                img = imresize(traffic_light, (32, 32)).astype("float16")/255.
+                img = imresize(self.traffic_light, (32, 32)).astype("float16")/255.
 
                 image_np_expanded = np.expand_dims(img, axis=0)
                 (classes) = self.class_sess.run(
                     [self.classification_tensor],
                     feed_dict={self.image_tensor_class: image_np_expanded})
-                rospy.logwarn(light_strings[np.argmax(classes)])
+
                 return light_states[np.argmax(classes)]
 
 
