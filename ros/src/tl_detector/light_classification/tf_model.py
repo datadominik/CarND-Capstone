@@ -72,19 +72,14 @@ class TrafficLightModel():
                 [self.detection_boxes, self.detection_scores, self.detection_classes, self.num_detections],
                 feed_dict={self.image_tensor_det: image_np_expanded})
 
+
+
             tl_idxs = np.where(classes == 10)
             scores = scores[tl_idxs]
+            boxes = boxes[tl_idxs]
 
             if len(scores) == 0:
                 return
-
-            boxes = boxes[tl_idxs]
-            top_score = np.where(scores > 0.2)
-
-            if len(top_score) == 0:
-                return
-
-            boxes = boxes[top_score]
 
             top_score = np.argmax(scores)
             box = boxes[top_score]

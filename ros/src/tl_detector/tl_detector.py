@@ -90,15 +90,16 @@ class TLDetector(object):
         of times till we start using it. Otherwise the previous stable state is
         used.
         '''
-        if light_wp is not -1:
-            if state == TrafficLight.RED:
-                rospy.logwarn("RED")
-            elif state == TrafficLight.GREEN:
-                rospy.logwarn("GREEN")
+
 
         if self.state != state:
             self.state_count = 0
             self.state = state
+            if light_wp is not -1:
+                if state == TrafficLight.RED:
+                    rospy.logwarn("RED")
+                elif state == TrafficLight.GREEN:
+                    rospy.logwarn("GREEN")
         elif self.state_count >= STATE_COUNT_THRESHOLD:
             self.last_state = self.state
             light_wp = light_wp if state == TrafficLight.RED else -1
