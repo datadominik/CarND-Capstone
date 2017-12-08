@@ -24,19 +24,6 @@ class TLDetector(object):
         self.lights = []
         self.MIN_DIST_THRESHOLD = 100
 
-        sub1 = rospy.Subscriber('/current_pose', PoseStamped, self.pose_cb)
-        sub2 = rospy.Subscriber('/base_waypoints', Lane, self.waypoints_cb)
-
-        '''
-        /vehicle/traffic_lights provides you with the location of the traffic light in 3D map space and
-        helps you acquire an accurate ground truth data source for the traffic light
-        classifier by sending the current color state of all traffic lights in the
-        simulator. When testing on the vehicle, the color state will not be available. You'll need to
-        rely on the position of the light and the camera image to predict it.
-        '''
-        sub3 = rospy.Subscriber('/vehicle/traffic_lights', TrafficLightArray, self.traffic_cb)
-        sub6 = rospy.Subscriber('/image_color', Image, self.image_cb)
-
         config_string = rospy.get_param("/traffic_light_config")
         self.config = yaml.load(config_string)
 
@@ -50,6 +37,21 @@ class TLDetector(object):
         self.last_state = TrafficLight.UNKNOWN
         self.last_wp = -1
         self.state_count = 0
+
+        sub1 = rospy.Subscriber('/current_pose', PoseStamped, self.pose_cb)
+        sub2 = rospy.Subscriber('/base_waypoints', Lane, self.waypoints_cb)
+
+        '''
+        /vehicle/traffic_lights provides you with the location of the traffic light in 3D map space and
+        helps you acquire an accurate ground truth data source for the traffic light
+        classifier by sending the current color state of all traffic lights in the
+        simulator. When testing on the vehicle, the color state will not be available. You'll need to
+        rely on the position of the light and the camera image to predict it.
+        '''
+        sub3 = rospy.Subscriber('/vehicle/traffic_lights', TrafficLightArray, self.traffic_cb)
+        sub6 = rospy.Subscriber('/image_color', Image, self.image_cb)
+
+
 
         rospy.spin()
 
@@ -154,24 +156,25 @@ class TLDetector(object):
 
         # List of positions that correspond to the line to stop in front of for a given intersection
         stop_line_positions = self.config['stop_line_positions']
-        if(self.pose):
-            car_waypoint = self.get_closest_waypoint(self.pose.pose)
-            car_position = self.get_coordinates(self.pose.pose)
+        if self.waypoints is not None:
+            if(self.pose):
+                car_waypoint = self.get_closest_waypoint(self.pose.pose)
+                car_position = self.get_coordinates(self.pose.pose)
 
-            dist = np.array([self.get_distance(np.array(car_position), self.get_coordinates(light.pose.pose)) for light in self.lights])
-            min_dist_idx = np.argmin(dist)
-            min_dist = np.min(dist)
-            light = self.lights[min_dist_idx]
+                dist = np.array([self.get_distance(np.array(car_position), self.get_coordinates(light.pose.pose)) for light in self.lights])
+                min_dist_idx = np.argmin(dist)
+                min_dist = np.min(dist)
+                light = self.lights[min_dist_idx]
 
-            light_waypoint = self.get_closest_waypoint(light.pose.pose)
+                light_waypoint = self.get_closest_waypoint(light.pose.pose)
 
 
-            if min_dist < self.MIN_DIST_THRESHOLD and car_waypoint < light_waypoint:
-                # traffic light ahead
-                state = self.get_light_state(light)
-                return light_waypoint, state
-            else:
-                return -1, TrafficLight.UNKNOWN
+                if min_dist < self.MIN_DIST_THRESHOLD and car_waypoint < light_waypoint:
+                    # traffic light ahead
+                    state = self.get_light_state(light)
+                    return light_waypoint, state
+                else:
+                    return -1, TrafficLight.UNKNOWN
 
         return -1, TrafficLight.UNKNOWN
 
