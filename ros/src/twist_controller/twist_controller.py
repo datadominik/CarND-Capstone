@@ -58,11 +58,11 @@ class Controller(object):
         new_accel = min(max(self.decel_limit, diff_velocity), self.accel_limit)
         # Feed throttle filter
         self.throttle_lpf.filt(new_accel)
+        throttle = self.throttle_PID.step(self.throttle_lpf.get(), diff_time)
 
         # If the difference is positive, them we accelerate
-        if diff_velocity > 0:
+        if throttle > 0:
             brake = 0
-            throttle = self.throttle_PID.step(self.throttle_lpf.get(), diff_time)
         # If the difference is negative, them we deacelerate
         else:
             throttle = 0
