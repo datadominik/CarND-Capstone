@@ -28,7 +28,10 @@ class Controller(object):
 
         # Throttle PID and filter
         self.throttle_PID = pid.PID(KP_accel, KI_accel, KD_accel, 0, 1)
-        self.throttle_lpf = LowPassFilter(0.5, 0.05)
+        self.throttle_lpf = LowPassFilter(0.02, 0.03)
+        # Steering filter
+        self.steer_lpf = LowPassFilter(0.015, 0.01)
+        
 
     def control(self, desired_velocity_x, desired_vel_angular_z, current_velocity_x, dbw_enabled):
 
@@ -36,6 +39,8 @@ class Controller(object):
         throttle = 0
         brake = 0
         steer = self.yaw_control.get_steering( desired_velocity_x, desired_vel_angular_z, current_velocity_x)
+        # Feed steering filter
+        steer = self.steer_lpf.filt(steer)
 
         if not dbw_enabled:
             # Reset Throttle PID if dbw is not enable
@@ -51,11 +56,13 @@ class Controller(object):
 
         #Limit the new acceleration value accordingly 
         new_accel = min(max(self.decel_limit, diff_velocity), self.accel_limit)
+        # Feed throttle filter
+        self.throttle_lpf.filt(new_accel)
 
         # If the difference is positive, them we accelerate
         if diff_velocity > 0:
             brake = 0
-            throttle = self.throttle_PID.step(new_accel - self.throttle_lpf.get(), diff_time)
+            throttle = self.throttle_PID.step(self.throttle_lpf.get(), diff_time)
         # If the difference is negative, them we deacelerate
         else:
             throttle = 0
