@@ -55,6 +55,8 @@ class TrafficLightModel():
         self.xmin = None
         self.xmax = None
 
+        self.last_confidence = 0
+
     def predict(self, image, detection):
         light_states = [TrafficLight.GREEN, TrafficLight.RED, TrafficLight.YELLOW]
 
@@ -66,7 +68,7 @@ class TrafficLightModel():
 
         image_np_expanded = np.expand_dims(image_np, axis=0)
 
-        if detection:
+        if detection or self.last_confidence < 0.7:
             with self.detection_graph.as_default():
 
                 (boxes, scores, classes, num) = self.det_sess.run(
@@ -83,6 +85,7 @@ class TrafficLightModel():
                     return
 
                 top_score = np.argmax(scores)
+                self.last_confidence = np.max(scores)
                 box = boxes[top_score]
 
                 self.ymin = int(box[0] * img_height)
