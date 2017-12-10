@@ -1,5 +1,18 @@
 This is the project repo for the final project of the Udacity Self-Driving Car Nanodegree: Programming a Real Self-Driving Car. For more information about the project, see the project introduction [here](https://classroom.udacity.com/nanodegrees/nd013/parts/6047fe34-d93c-4f50-8336-b70ef10cb4b2/modules/e1a23b06-329a-4684-a717-ad476f0d8dff/lessons/462c933d-9f24-42d3-8bdc-a08a5fc866e4/concepts/5ab4b122-83e6-436d-850f-9f4d26627fd9).
 
+### DBW Node
+
+This module, last layer of the process, is responsable to publish throttle, brake and steer commands to control the vehicle. Different methods were used for each of these commands:
+
+#### Throttle
+First, the difference between the actual velocity and the desired velocity is calculated. The obtained value is compared wth the acceleration limits provided by external parameters, taking in count a time differential between the last meassure and the actual one. Later, a PID is fed using the final value. Before setting the throttle value to the one return by the PID, a low pass filter is used to avoid interference by noise. 
+
+#### Brake
+If the throttle value calculated before is 0, brake calculatio is activated. Using the value return by the velocity PID a new brake value is set taking in count the mass of the vehicle, the mass of the fuel and the wheel radious. Note that the PID parameters Kp, Kd and Ki were tune by trial and error.
+
+#### Steering
+In order to control steer two elements were used. First, an instance of the yaw controller is created being the principal element to calculate the next steering value based on the actual velocity, the desired velocity and the actual angular velocity. As a second element, a low pass filter was integrated to increase estability.  
+
 ### Run code
 
 ```bash
