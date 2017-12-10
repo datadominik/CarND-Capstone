@@ -13,6 +13,7 @@ import numpy as np
 import yaml
 
 STATE_COUNT_THRESHOLD = 2
+MIN_DIST_THRESHOLD = 100
 
 class TLDetector(object):
     def __init__(self):
@@ -23,7 +24,7 @@ class TLDetector(object):
         self.camera_image = None
         self.current_velocity_x = None
         self.lights = []
-        self.MIN_DIST_THRESHOLD = 100
+
         config_string = rospy.get_param("/traffic_light_config")
         self.config = yaml.load(config_string)
 
@@ -37,7 +38,7 @@ class TLDetector(object):
         self.last_state = TrafficLight.UNKNOWN
         self.last_wp = -1
         self.last_car_wp = -1
-        self.ignore_count = 0
+        self.n_ignore = 0
 
         self.state_count = 0
 
@@ -82,8 +83,8 @@ class TLDetector(object):
         self.has_image = True
         self.camera_image = msg
 
-        self.ignore_count += 1
-        if self.ignore_count % 5 != 0:
+        self.n_ignore += 1
+        if self.n_ignore % 5 != 0:
             return
 
         light_wp, state = self.process_traffic_lights()
@@ -193,7 +194,7 @@ class TLDetector(object):
                 light_waypoint = self.get_closest_waypoint(light.pose.pose)
 
 
-                if min_dist < self.MIN_DIST_THRESHOLD and car_waypoint < light_waypoint:
+                if min_dist < MIN_DIST_THRESHOLD and car_waypoint < light_waypoint:
                     # traffic light ahead
                     state = self.get_light_state(light)
                     return light_waypoint, state
