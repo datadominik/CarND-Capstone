@@ -3,7 +3,7 @@
 import threading
 import rospy
 import std_msgs.msg
-from geometry_msgs.msg import PoseStamped
+from geometry_msgs.msg import PoseStamped, TwistStamped
 from styx_msgs.msg import Lane, Waypoint
 from std_msgs.msg import Int32
 
@@ -25,13 +25,17 @@ TODO (for Yousuf and Aaron): Stopline location for each traffic light.
 '''
 
 LOOKAHEAD_WPS = 200  # Number of waypoints we will publish. You can change this number
-FREQUENCY = 10        # Update rate in Hz
+FREQUENCY = 10       # Update rate in Hz
+MPH2MPS = 0.44704    # Mile per hour to meters per second conversion factor
 
 # The car's state
-NONE = 0        # Stays in this state until the base_waypoints and the first position habe been received
+INIT = 0        # Stays in this state until the base_waypoints and the first position habe been received
 DRIVE = 1       # The car will be in the DRIVE state as long as there is no RED traffic light in front of it
-STOPPING = 2    # The car will be in the STOPPING state if a RED traffic light has been detected. It will stay in
+WAIT = 2        # The car will be in the WAIT state if a RED traffic light has been detected. It will stay in
                 # this state until the traffic light is GREEN again.
+STOP = 3        # Final state. Vehicle stops.
+
+
 
 SAFETY_DISTANCE = 25  # Safety distance to the closest waypoint of the traffic light stopline
 
@@ -43,6 +47,7 @@ class WaypointUpdater(object):
         self.bwp_subscription = rospy.Subscriber('/base_waypoints', Lane, self.waypoints_cb)
         rospy.Subscriber('/current_pose', PoseStamped, self.pose_cb)
         rospy.Subscriber('/traffic_waypoint', Int32, self.traffic_cb)
+        rospy.Subscriber('/current_velocity', TwistStamped, self.actual_velocity_cb)
 
         # Publisher: final_waypoints
         self.final_waypoints_pub = rospy.Publisher('final_waypoints', Lane, queue_size=1)
@@ -53,15 +58,16 @@ class WaypointUpdater(object):
         self.decel_limit = -1.0*rospy.get_param('/dbw_node/decel_limit')
         self.accel_limit = rospy.get_param('/dbw_node/accel_limit')
 
-        self.current_state = NONE
+        self.current_state = INIT
         self.base_waypoints = []
+        self.final_wps = None
         self.num_wps = -1
         self.current_pos = None
         self.prev_wp_idx = -1
         self.next_wp_idx = -1
         self.msg_seq = 0
         self.next_tl_wp = -1 # waypoint index of the next upcoming traffic light
-
+        self.final_wp = -1
         self.lock = threading.Lock()
 
         # Start processing loop
@@ -69,6 +75,12 @@ class WaypointUpdater(object):
 
     def kmph2mps(self, velocity_kmph):
         return (velocity_kmph * 1000.) / (60. * 60.)
+
+    def actual_velocity_cb(self, msg):
+        current_velocity_x = msg.twist.linear.x
+
+        if self.current_state == STOP and current_velocity_x < 0.001:
+            rospy.logwarn("Stopped_waypoint: {0}, final_waypoint: {1}".format(self.next_wp_idx, self.final_wp))
 
     def pose_cb(self, msg):
         """
@@ -88,6 +100,7 @@ class WaypointUpdater(object):
         if len(self.base_waypoints) == 0:
             self.base_waypoints = waypoints.waypoints
             self.num_wps = len(self.base_waypoints)
+            self.final_wp = self.num_wps - 1
 
             for i in range(self.num_wps):
                 self.set_waypoint_velocity(self.base_waypoints, i, 0.0)
@@ -104,28 +117,32 @@ class WaypointUpdater(object):
         # TODO: Callback for /obstacle_waypoint message. We will implement it later
         pass
 
-    def update_state(self):
+    def update_state(self, is_final_state = False):
         """
         Carries out a possible state transition:
-        NONE        -> {DRIVE, STOPPING}
-        DRIVE       -> {STOPPING}
+        NONE        -> {DRIVE, WAIT}
+        DRIVE       -> {WAIT}
         STOPPING    -> {DRIVE}
+        _           -> {STOP}
         """
-        if self.current_state == NONE:
+        if self.current_state == INIT:
             if self.current_pos is not None and len(self.base_waypoints) > 0 and self.next_tl_wp == -1:
                 self.current_state = DRIVE
                 rospy.loginfo("NONE -> DRIVE")
             elif self.current_pos is not None and len(self.base_waypoints) > 0 and self.next_tl_wp > -1:
-                self.current_state = STOPPING
-                rospy.loginfo("NONE -> STOPPING, TL AT WP: " + str(self.next_tl_wp))
+                self.current_state = WAIT
+                rospy.loginfo("NONE -> WAIT, TRAFFIC LIGHT AT WP: " + str(self.next_tl_wp))
+        elif is_final_state:
+            self.current_state = STOP
+            rospy.logwarn("-> STOP")
         elif self.current_state == DRIVE:
             if self.next_tl_wp > -1:
-                self.current_state = STOPPING
-                rospy.loginfo("DRIVE -> STOPPING TL AT WP: " + str(self.next_tl_wp))
-        elif self.current_state == STOPPING:
+                self.current_state = WAIT
+                rospy.logwarn("DRIVE -> WAIT TRAFFIC LIGHT AT WP: " + str(self.next_tl_wp))
+        elif self.current_state == WAIT:
             if self.next_tl_wp == -1:
                 self.current_state = DRIVE
-                rospy.loginfo("STOPPING -> DRIVE")
+                rospy.loginfo("WAIT -> DRIVE")
 
     def run(self):
         rate = rospy.Rate(FREQUENCY)
@@ -140,7 +157,7 @@ class WaypointUpdater(object):
 
                 self.publish_final_waypoints(final_wps)
 
-            elif self.current_state == STOPPING:
+            elif self.current_state == WAIT:
                 with self.lock:
                     _next_tl_wp_idx = self.next_tl_wp
 
@@ -150,13 +167,18 @@ class WaypointUpdater(object):
                     # check if tl_wp is in the final_wps
                     if self.next_wp_idx <= _next_tl_wp_idx < self.next_wp_idx + LOOKAHEAD_WPS:
                         tl_wp_idx_in_fwps = _next_tl_wp_idx - self.next_wp_idx
-                        self.deccelerate(final_wps, tl_wp_idx_in_fwps, SAFETY_DISTANCE)
+                        self.deccelerate(final_wps, tl_wp_idx_in_fwps, SAFETY_DISTANCE, self.next_wp_idx)
                         self.publish_final_waypoints(final_wps)
                     else:
                         rospy.logwarn("Traffic wp is not in final_waypoints list: {0} <= {1} < {2}"
                                        .format(self.next_wp_idx, _next_tl_wp_idx, self.next_wp_idx + LOOKAHEAD_WPS))
                 else:
                     rospy.logwarn("Invalid traffic waypoint index: " + _next_tl_wp_idx)
+            elif self.current_state == STOP:
+                final_wps = self.get_final_waypoints()
+                final_wp_idx = self.final_wp - self.next_wp_idx
+                self.deccelerate(final_wps, final_wp_idx, SAFETY_DISTANCE, self.next_wp_idx)
+                self.publish_final_waypoints(final_wps)
 
             rate.sleep()
 
@@ -166,6 +188,10 @@ class WaypointUpdater(object):
 
         self.next_wp_idx = self.get_next_waypoint(self.current_pos)
         final_wps = [self.base_waypoints[(i + self.next_wp_idx) % self.num_wps] for i in range(LOOKAHEAD_WPS)]
+
+        if self.current_state != STOP and (self.next_wp_idx < self.final_wp < self.next_wp_idx + LOOKAHEAD_WPS):
+            self.update_state(is_final_state=True)
+
         return final_wps
 
     def accelerate(self, final_wps, v_start):
@@ -188,7 +214,7 @@ class WaypointUpdater(object):
             s = self.distance(final_wps, 0, i)
             a = self.accel_limit
             t = math.sqrt((2.0 * s) / a)
-            v = v_start + (a * t) * 0.44704
+            v = v_start + (a * t) * MPH2MPS
 
             if v > self.v_limit:
                 v = self.v_limit
@@ -196,7 +222,7 @@ class WaypointUpdater(object):
             #rospy.loginfo("accel: s:{0}, t:{1}, v:{2}, a:{3}".format(s,t,v,a))
             self.set_waypoint_velocity(final_wps, i, v)
 
-    def deccelerate(self, final_wps, tl_wp_idx, safety_dist):
+    def deccelerate(self, final_wps, tl_wp_idx, safety_dist, start_idx):
         """
         Deccelerates until vehicle has stopped.
         :param final_wps: final waypoints
@@ -223,6 +249,7 @@ class WaypointUpdater(object):
                 # increase velocity with const acceleration as we're going backwards
                 if stop_wp_idx == -1:
                     stop_wp_idx = i+1
+                    #rospy.logwarn("Desired stop waypoint: " + str(start_idx + stop_wp_idx))
 
                 # 1.) s = (a*t^2) / 2
                 # 2.) from 1.) we get -> t = sqrt((2*s) / a)
@@ -232,7 +259,7 @@ class WaypointUpdater(object):
                 s = self.distance(final_wps, i, stop_wp_idx)
                 a = self.decel_limit
                 t = math.sqrt((2.0*s)/a)
-                v = (a * t) * 0.44704
+                v = (a * t) * MPH2MPS
 
                 if v < self.get_waypoint_velocity(final_wps[i]):
                     self.set_waypoint_velocity(final_wps, i, v)
