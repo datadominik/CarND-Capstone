@@ -7,7 +7,7 @@ class TLClassifier(object):
         #self.model = BaseModel()
         self.model = TrafficLightModel()
 
-    def get_classification(self, image):
+    def get_classification(self, image, detection):
         """Determines the color of the traffic light in the image
 
         Args:
@@ -18,7 +18,7 @@ class TLClassifier(object):
 
         """
         #start = time.time()
-        pred = self.model.predict(image)
+        pred = self.model.predict(image, detection)
 
         #end = time.time()
         #rospy.logwarn("Prediction time: {}".format(start-end))

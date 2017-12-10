@@ -8,7 +8,7 @@ from sensor_msgs.msg import Image
 from cv_bridge import CvBridge
 from light_classification.tl_classifier import TLClassifier
 import tf
-import time
+from geometry_msgs.msg import TwistStamped
 import numpy as np
 import yaml
 
@@ -21,6 +21,7 @@ class TLDetector(object):
         self.pose = None
         self.waypoints = None
         self.camera_image = None
+        self.current_velocity_x = None
         self.lights = []
         self.MIN_DIST_THRESHOLD = 100
         config_string = rospy.get_param("/traffic_light_config")
@@ -51,8 +52,8 @@ class TLDetector(object):
         rely on the position of the light and the camera image to predict it.
         '''
         sub3 = rospy.Subscriber('/vehicle/traffic_lights', TrafficLightArray, self.traffic_cb)
-        sub6 = rospy.Subscriber('/image_color', Image, self.image_cb, queue_size=1)
-
+        sub4 = rospy.Subscriber('/image_color', Image, self.image_cb, queue_size=1)
+        sub5 = rospy.Subscriber('/current_velocity', TwistStamped, self.actual_velocity_cb)
 
 
         rospy.spin()
@@ -65,6 +66,9 @@ class TLDetector(object):
 
     def traffic_cb(self, msg):
         self.lights = msg.lights
+
+    def actual_velocity_cb(self, msg):
+        self.current_velocity_x = msg.twist.linear.x
 
     def image_cb(self, msg):
         """Identifies red lights in the incoming camera image and publishes the index
@@ -156,8 +160,12 @@ class TLDetector(object):
 
         cv_image = self.bridge.imgmsg_to_cv2(self.camera_image, "rgb8")
 
+        detection = False
+        if self.current_velocity_x > 0.1:
+            detection = True
+
         #Get classification
-        return self.light_classifier.get_classification(cv_image)
+        return self.light_classifier.get_classification(cv_image, detection)
 
     def process_traffic_lights(self):
         """Finds closest visible traffic light, if one exists, and determines its
@@ -176,13 +184,6 @@ class TLDetector(object):
             if(self.pose):
                 car_waypoint = self.get_closest_waypoint(self.pose.pose)
                 car_position = self.get_coordinates(self.pose.pose)
-
-                #if self.last_car_wp == car_waypoint:
-                #    self.detect = False
-                #else:
-                #    self.detect = True
-
-                #self.last_car_wp = car_waypoint
 
                 dist = np.array([self.get_distance(np.array(car_position), self.get_coordinates(light.pose.pose)) for light in self.lights])
                 min_dist_idx = np.argmin(dist)

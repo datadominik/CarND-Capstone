@@ -55,7 +55,7 @@ class TrafficLightModel():
         self.xmin = None
         self.xmax = None
 
-    def predict(self, image):
+    def predict(self, image, detection):
         light_states = [TrafficLight.GREEN, TrafficLight.RED, TrafficLight.YELLOW]
 
         image = np.asarray(image, dtype="uint8")
@@ -66,28 +66,29 @@ class TrafficLightModel():
 
         image_np_expanded = np.expand_dims(image_np, axis=0)
 
-        with self.detection_graph.as_default():
+        if detection:
+            with self.detection_graph.as_default():
 
-            (boxes, scores, classes, num) = self.det_sess.run(
-                [self.detection_boxes, self.detection_scores, self.detection_classes, self.num_detections],
-                feed_dict={self.image_tensor_det: image_np_expanded})
+                (boxes, scores, classes, num) = self.det_sess.run(
+                    [self.detection_boxes, self.detection_scores, self.detection_classes, self.num_detections],
+                    feed_dict={self.image_tensor_det: image_np_expanded})
 
 
 
-            tl_idxs = np.where(classes == 10)
-            scores = scores[tl_idxs]
-            boxes = boxes[tl_idxs]
+                tl_idxs = np.where(classes == 10)
+                scores = scores[tl_idxs]
+                boxes = boxes[tl_idxs]
 
-            if len(scores) == 0:
-                return
+                if len(scores) == 0:
+                    return
 
-            top_score = np.argmax(scores)
-            box = boxes[top_score]
+                top_score = np.argmax(scores)
+                box = boxes[top_score]
 
-            self.ymin = int(box[0] * img_height)
-            self.ymax = int(box[2] * img_height)
-            self.xmin = int(box[1] * img_width)
-            self.xmax = int(box[3] * img_width)
+                self.ymin = int(box[0] * img_height)
+                self.ymax = int(box[2] * img_height)
+                self.xmin = int(box[1] * img_width)
+                self.xmax = int(box[3] * img_width)
 
         self.traffic_light = image_np[self.ymin:self.ymax, self.xmin:self.xmax]
 
