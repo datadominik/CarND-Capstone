@@ -197,7 +197,11 @@ class TLDetector(object):
                 if min_dist < MIN_DIST_THRESHOLD and car_waypoint < light_waypoint:
                     # traffic light ahead
                     state = self.get_light_state(light)
-                    return light_waypoint, state
+
+                    if state is None:
+                        return light_waypoint, self.last_state
+                    else:
+                        return light_waypoint, state
                 else:
                     return -1, TrafficLight.UNKNOWN
 
