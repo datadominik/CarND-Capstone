@@ -3,9 +3,20 @@ This is the project repo for the final project of the Udacity Self-Driving Car N
 
 ## System Architecture
 
+<figure>
+<a href="url"><img src="./imgs/system_architecture.png" height="480" width="1024" ></a>
+<figcaption>Source: Udacity</figcaption>
+</figure>
+
 ## Perception
 
 ## Planning
+The _Planning_ _Subsystem_ is responsible for generating a trajectory through the world to get us to a final target. The _PLanning_ _Subsystem_ consists of two ROS nodes. The _Waypoint Loader_ and the _Waypoint Updater_ node.
+
+### Waypoint Loader
+
+### Waypoint Updater
+The _Waypoint Updater_ updates the target velocity for the waypoints ahead of the car. It set the target velocity for each waypoint on upcoming traffic lights and their corresponding states.
 
 ## Control
 
