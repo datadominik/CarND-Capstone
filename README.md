@@ -16,7 +16,7 @@ The _Planning_ _Subsystem_ is responsible for generating a trajectory through th
 ### Waypoint Loader
 
 ### Waypoint Updater
-The _Waypoint Updater_ updates the target velocity for the waypoints ahead of the car. It set the target velocity for each waypoint on upcoming traffic lights and their corresponding states.
+The _Waypoint Updater_ updates the target velocity for the waypoints ahead of the car. It sets the target velocity for each waypoint based on upcoming traffic lights and their corresponding states.
 
 ## Control
 
