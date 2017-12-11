@@ -3,6 +3,7 @@
 import threading
 import rospy
 import std_msgs.msg
+import tf
 from geometry_msgs.msg import PoseStamped, TwistStamped
 from styx_msgs.msg import Lane, Waypoint
 from std_msgs.msg import Int32
@@ -131,14 +132,14 @@ class WaypointUpdater(object):
                 rospy.loginfo("NONE -> DRIVE")
             elif self.current_pos is not None and len(self.base_waypoints) > 0 and self.next_tl_wp > -1:
                 self.current_state = WAIT
-                rospy.loginfo("NONE -> WAIT, TRAFFIC LIGHT AT WP: " + str(self.next_tl_wp))
+                rospy.loginfo("NONE -> WAIT. TRAFFIC LIGHT AT WP: " + str(self.next_tl_wp))
         elif is_final_state:
             self.current_state = STOP
             rospy.logwarn("-> STOP")
         elif self.current_state == DRIVE:
             if self.next_tl_wp > -1:
                 self.current_state = WAIT
-                rospy.logwarn("DRIVE -> WAIT TRAFFIC LIGHT AT WP: " + str(self.next_tl_wp))
+                rospy.logwarn("DRIVE -> WAIT. TRAFFIC LIGHT AT WP: " + str(self.next_tl_wp))
         elif self.current_state == WAIT:
             if self.next_tl_wp == -1:
                 self.current_state = DRIVE
@@ -150,13 +151,10 @@ class WaypointUpdater(object):
         while not rospy.is_shutdown():
             if self.current_state == DRIVE:
                 final_wps = self.get_final_waypoints()
-
                 v_curr = self.get_waypoint_velocity(final_wps[0])
                 v_start = v_curr if v_curr > 0.00001 else 1.0
                 self.accelerate(final_wps, v_start)
-
                 self.publish_final_waypoints(final_wps)
-
             elif self.current_state == WAIT:
                 with self.lock:
                     _next_tl_wp_idx = self.next_tl_wp
@@ -177,7 +175,7 @@ class WaypointUpdater(object):
             elif self.current_state == STOP:
                 final_wps = self.get_final_waypoints()
                 final_wp_idx = self.final_wp - self.next_wp_idx
-                self.deccelerate(final_wps, final_wp_idx, SAFETY_DISTANCE, self.next_wp_idx)
+                self.deccelerate(final_wps, final_wp_idx, 5, self.next_wp_idx)
                 self.publish_final_waypoints(final_wps)
 
             rate.sleep()
@@ -249,7 +247,6 @@ class WaypointUpdater(object):
                 # increase velocity with const acceleration as we're going backwards
                 if stop_wp_idx == -1:
                     stop_wp_idx = i+1
-                    #rospy.logwarn("Desired stop waypoint: " + str(start_idx + stop_wp_idx))
 
                 # 1.) s = (a*t^2) / 2
                 # 2.) from 1.) we get -> t = sqrt((2*s) / a)
@@ -265,7 +262,6 @@ class WaypointUpdater(object):
                     self.set_waypoint_velocity(final_wps, i, v)
                     #rospy.loginfo("deccel: s:{0}, t:{1}, v:{2}, a:{3}".format(s, t, v, a))
                 else:
-                    #rospy.logdebug("stop deccel at wp {0} wp_v:{1} w: {2}".format(s, t, v, a))
                     break
 
     def publish_final_waypoints(self, final_waypoints):
@@ -314,6 +310,19 @@ class WaypointUpdater(object):
 
         return closest_waypoint_idx
 
+    def get_current_yaw(self):
+        """
+        Taken from: https://answers.ros.org/question/69754/quaternion-transformations-in-python/
+        :return:
+        """
+        orientation = [
+            self.current_pos.orientation.x,
+            self.current_pos.orientation.y,
+            self.current_pos.orientation.z,
+            self.current_pos.orientation.w]
+        euler = tf.transformations.euler_from_quaternion(orientation)
+        return euler[2]   # z direction
+
     def get_next_waypoint(self, current_pos):
         """
         Searches the next closest waypoint that is in front of our car. The search
@@ -324,8 +333,7 @@ class WaypointUpdater(object):
 
         car_x = self.current_pos.position.x
         car_y = self.current_pos.position.y
-        car_theta = math.atan2(self.current_pos.orientation.y, self.current_pos.orientation.x)
-
+        car_theta = self.get_current_yaw()
         closest_wp_idx = self.get_closest_waypoint(car_x, car_y)
         wp_x = self.base_waypoints[closest_wp_idx].pose.pose.position.x
         wp_y = self.base_waypoints[closest_wp_idx].pose.pose.position.y
@@ -334,13 +342,8 @@ class WaypointUpdater(object):
         heading = math.atan2((wp_y - car_y), (wp_x - car_x));
         angle = abs(car_theta - heading);
 
-        # rospy.logdebug("curr_pos: ({0},{1}), closest_wp_idx: {2}, closest_wp: ({3},{4})"
-        #                .format(car_x, car_y, closest_wp_idx, wp_x, wp_y))
-
         if angle > math.pi/4:
             closest_wp_idx += 1
-            #rospy.logdebug("Angle: {0} greater PI/4, new_wp_idx {1}".format(angle, closest_wp_idx))
-
 
         return closest_wp_idx;
 
