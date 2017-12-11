@@ -16,7 +16,7 @@ The _Planning_ _Subsystem_ is responsible for generating a trajectory through th
 ### Waypoint Loader
 
 ### Waypoint Updater
-The _Waypoint Updater_ updates the target velocity for the waypoints ahead of the car. It sets the target velocity for each waypoint based on upcoming traffic lights and their corresponding states.
+The _Waypoint Updater_ (WU) updates the target velocity for the waypoints ahead of the car. It sets the target velocity for each waypoint based on upcoming traffic lights and their corresponding states. It receives all waypoints for a certain route from the _Waypoint Loader_ node, the current position either from the Simulator or from Carla and traffic waypoint messages from the _Traffic Light Detection_ node. Based on this information the WU takes the closest 200 waypoints ahead publishes them to /final_waypoint. If a RED traffic light is within these waypoints then it reduces the velocity in these waypoints so that it stops more or less at the traffic light stop line. When the traffic light turns GREEN again it increases velocity in the upcoming waypoints with constant acceleration.
 
 ## Control
 
