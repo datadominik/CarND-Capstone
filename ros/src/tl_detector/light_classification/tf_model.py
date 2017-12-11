@@ -75,8 +75,6 @@ class TrafficLightModel():
                     [self.detection_boxes, self.detection_scores, self.detection_classes, self.num_detections],
                     feed_dict={self.image_tensor_det: image_np_expanded})
 
-
-
                 tl_idxs = np.where(classes == 10)
                 scores = scores[tl_idxs]
                 boxes = boxes[tl_idxs]
@@ -86,6 +84,10 @@ class TrafficLightModel():
 
                 top_score = np.argmax(scores)
                 self.last_confidence = np.max(scores)
+
+                if self.last_confidence < 0.5:
+                    return
+
                 box = boxes[top_score]
 
                 self.ymin = int(box[0] * img_height)
@@ -108,7 +110,5 @@ class TrafficLightModel():
                     feed_dict={self.image_tensor_class: image_np_expanded})
 
                 return light_states[np.argmax(classes)]
-
-
 
         return TrafficLight.UNKNOWN
