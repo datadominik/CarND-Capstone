@@ -181,6 +181,7 @@ class TLDetector(object):
 
         # List of positions that correspond to the line to stop in front of for a given intersection
         stop_line_positions = self.config['stop_line_positions']
+
         if self.waypoints is not None:
             if(self.pose):
                 car_waypoint = self.get_closest_waypoint(self.pose.pose)
@@ -189,10 +190,15 @@ class TLDetector(object):
                 dist = np.array([self.get_distance(np.array(car_position), self.get_coordinates(light.pose.pose)) for light in self.lights])
                 min_dist_idx = np.argmin(dist)
                 min_dist = np.min(dist)
+
                 light = self.lights[min_dist_idx]
 
-                light_waypoint = self.get_closest_waypoint(light.pose.pose)
+                stop_line_position = stop_line_positions[min_dist_idx]
+                stop_line = Pose()
+                stop_line.position.x = stop_line_position[0]
+                stop_line.position.y = stop_line_position[1]
 
+                light_waypoint = self.get_closest_waypoint(stop_line)
 
                 if min_dist < MIN_DIST_THRESHOLD and car_waypoint < light_waypoint:
                     # traffic light ahead
