@@ -17,6 +17,10 @@ The figure below shows the system architecture comprising the __Perception__, th
 </figure>
 
 ## Perception
+<figure>
+<a href="url"><img src="./imgs/process.png" height="480" width="1024" ></a>
+<figcaption>Source: Udacity</figcaption>
+</figure>
 
 ## Planning
 The _Planning_ _Subsystem_ is responsible for generating a trajectory through the world to get us to a final target. The _PLanning_ _Subsystem_ consists of two ROS nodes. The _Waypoint Loader_ and the _Waypoint Updater_ node.
