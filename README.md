@@ -18,7 +18,7 @@ The figure below shows the system architecture comprising the __Perception__, th
 
 ## Perception
 <figure>
-<a href="url"><img src="./imgs/process.png" height="480" width="1024" ></a>
+<a href="url"><img src="./imgs/process.png" width="1024" ></a>
 <figcaption>Source: Udacity</figcaption>
 </figure>
 
