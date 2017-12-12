@@ -6,6 +6,7 @@ from lowpass import LowPassFilter
 
 GAS_DENSITY = 2.858
 ONE_MPH = 0.44704
+DRIVER_WEIGHT = 80
 KD_accel = 0.01
 KI_accel = 0.08
 KP_accel = 0.9
@@ -67,7 +68,7 @@ class Controller(object):
         else:
             throttle = 0
             # Torque  = F * radius -> F = mass * acceleration. Include mass of fuel
-            brake = abs(new_accel * (self.vehicle_mass + self.fuel_capacity * GAS_DENSITY) * self.wheel_radius)
+            brake = abs(new_accel * (self.vehicle_mass + self.fuel_capacity * GAS_DENSITY + DRIVER_WEIGHT) * self.wheel_radius)
 
         rospy.loginfo("DV: "+str(desired_velocity_x)+" DA: "+str(desired_vel_angular_z)+" CV: "+str(current_velocity_x)+ " new_accel: "+str(new_accel))        
         rospy.loginfo("Steer: "+str(steer)+" Throttle: "+str(throttle)+" Brake: "+str(brake))
