@@ -1,7 +1,15 @@
 # CarND-Capstone Project
 This is the project repo for the final project of the Udacity Self-Driving Car Nanodegree: Programming a Real Self-Driving Car. For more information about the project, see the project introduction [here](https://classroom.udacity.com/nanodegrees/nd013/parts/6047fe34-d93c-4f50-8336-b70ef10cb4b2/modules/e1a23b06-329a-4684-a717-ad476f0d8dff/lessons/462c933d-9f24-42d3-8bdc-a08a5fc866e4/concepts/5ab4b122-83e6-436d-850f-9f4d26627fd9).
 
+The goal of this project is to implement core functionalities of a self-driving car:
+
+- Traffic light detection
+- Waypoint following
+- Control
+
 ## System Architecture
+
+The figure below shows the system architecture comprising the __Perception__, the __Planning__ and the __Control__ subsystem. The __Perception__ subsystem is responsible for traffic light detection. The __Planning__ subsystem provides a trajectory that the vehicle shall follow and the __Control__ subsystem generates steering, throttle and break commands based in the received trajectory. Each subsystem will be described in more detail in the following sections.
 
 <figure>
 <a href="url"><img src="./imgs/system_architecture.png" height="480" width="1024" ></a>
@@ -14,9 +22,14 @@ This is the project repo for the final project of the Udacity Self-Driving Car N
 The _Planning_ _Subsystem_ is responsible for generating a trajectory through the world to get us to a final target. The _PLanning_ _Subsystem_ consists of two ROS nodes. The _Waypoint Loader_ and the _Waypoint Updater_ node.
 
 ### Waypoint Loader
+The _Waypoint Loader_ loads all the waypoints of a certain track and broadcast these waypoints over the /base_waypoints topic to other listeners like the _Waypoint Uploader_ or the _Traffic Light Detection Node_. This component was already implemented by Udacity and was not modified.
 
 ### Waypoint Updater
-The _Waypoint Updater_ (WU) updates the target velocity for the waypoints ahead of the car. It sets the target velocity for each waypoint based on upcoming traffic lights and their corresponding states. It receives all waypoints for a certain route from the _Waypoint Loader_ node, the current position either from the Simulator or from Carla and traffic waypoint messages from the _Traffic Light Detection_ node. Based on this information the WU takes the closest 200 waypoints ahead publishes them to /final_waypoint. If a RED traffic light is within these waypoints then it reduces the velocity in these waypoints so that it stops more or less at the traffic light stop line. When the traffic light turns GREEN again it increases velocity in the upcoming waypoints with constant acceleration.
+The _Waypoint Updater_ (WU) updates the target velocity for the waypoints ahead of the car. It sets the target velocity for each waypoint based on upcoming traffic lights and their corresponding states. 
+
+It receives all waypoints for a certain route from the _Waypoint Loader_ node, the current position either from the Simulator or from Carla and traffic waypoint messages from the _Traffic Light Detection_ node. Based on this information the WU takes the closest 200 waypoints ahead and publishes them to /final_waypoint. 
+
+If a RED traffic light is within these waypoints then it reduces the velocity in these waypoints so that it stops more or less at the traffic light stop line. When the traffic light turns GREEN again it increases velocity in the upcoming waypoints with constant acceleration.
 
 ## Control
 
