@@ -7,6 +7,15 @@ The goal of this project is to implement core functionalities of a self-driving 
 - Waypoint following
 - Control
 
+## Team TBD
+| Team member | Main responsibility | Linkedin profile |
+|-------------|---------------------|------------------|
+| Will        | Controller          |                  |
+| Dominik     | Perception          |                  |
+| Rudi        | Waypoint updater    |                  |
+| Chris       | Testing             |                  |
+
+
 ## System Architecture
 
 The figure below shows the system architecture comprising the __Perception__, the __Planning__ and the __Control__ subsystem. The __Perception__ subsystem is responsible for traffic light detection. The __Planning__ subsystem provides a trajectory that the vehicle shall follow and the __Control__ subsystem generates steering, throttle and break commands based in the received trajectory. Each subsystem will be described in more detail in the following sections.
