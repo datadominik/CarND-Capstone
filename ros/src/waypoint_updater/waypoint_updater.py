@@ -36,7 +36,7 @@ WAIT = 2        # The car will be in the WAIT state if a RED traffic light has b
                 # this state until the traffic light is GREEN again.
 STOP = 3        # Final state. Vehicle stops.
 
-SAFETY_DISTANCE = 2  # Safety distance to the closest waypoint of the traffic light stopline
+SAFETY_DISTANCE = 0  # Safety distance to the closest waypoint of the traffic light stopline
 
 class WaypointUpdater(object):
     def __init__(self):
@@ -113,6 +113,7 @@ class WaypointUpdater(object):
     def traffic_cb(self, msg):
         with self.lock:
             self.next_tl_wp = msg.data
+            #rospy.logwarn("Traffic message " + str(msg.data))
         self.update_state()
 
 
@@ -170,18 +171,8 @@ class WaypointUpdater(object):
                     tl_wp_idx_in_fwps = tl_wp_idx_in_fwps if tl_wp_idx_in_fwps >= 0 else 0
                     self.deccelerate(final_wps, tl_wp_idx_in_fwps, SAFETY_DISTANCE, self.next_wp_idx)
                     self.publish_final_waypoints(final_wps)
-
-                    # # check if tl_wp is in the final_wps
-                    # if self.next_wp_idx <= _next_tl_wp_idx < self.next_wp_idx + LOOKAHEAD_WPS:
-                    #     tl_wp_idx_in_fwps = _next_tl_wp_idx - self.next_wp_idx
-                    #     self.deccelerate(final_wps, tl_wp_idx_in_fwps, SAFETY_DISTANCE, self.next_wp_idx)
-                    #     self.publish_final_waypoints(final_wps)
-                    # else:
-                    #     rospy.logwarn("Traffic wp is not in final_waypoints list: {0} <= {1} < {2}"
-                    #                    .format(self.next_wp_idx, _next_tl_wp_idx, self.next_wp_idx + LOOKAHEAD_WPS))
-                    #     self.publish_final_waypoints(final_wps)
                 else:
-                    rospy.logwarn("Invalid traffic waypoint index: " + _next_tl_wp_idx)
+                    rospy.logwarn("Invalid traffic waypoint index: " + str(_next_tl_wp_idx))
             elif self.current_state == STOP:
                 final_wps = self.get_final_waypoints()
                 final_wp_idx = self.final_wp - self.next_wp_idx
