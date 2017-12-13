@@ -36,7 +36,7 @@ WAIT = 2        # The car will be in the WAIT state if a RED traffic light has b
                 # this state until the traffic light is GREEN again.
 STOP = 3        # Final state. Vehicle stops.
 
-SAFETY_DISTANCE = 0  # Safety distance to the closest waypoint of the traffic light stopline
+SAFETY_DISTANCE = 2  # Safety distance to the closest waypoint of the traffic light stopline
 
 class WaypointUpdater(object):
     def __init__(self):
