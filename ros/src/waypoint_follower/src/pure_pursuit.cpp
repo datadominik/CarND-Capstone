@@ -29,7 +29,7 @@
 */
 
 #include "pure_pursuit_core.h"
-# Performance improvement, based on https://github.com/jdleesmiller/CarND-Capstone/commit/33dae9248a73feab9b577dd135116b6575e85788
+// Performance improvement, based on https://github.com/jdleesmiller/CarND-Capstone/commit/33dae9248a73feab9b577dd135116b6575e85788
 
 constexpr int LOOP_RATE = 30; //processing frequency
 const int QUEUE_SIZE = 1;
