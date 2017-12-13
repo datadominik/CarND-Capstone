@@ -37,9 +37,19 @@ By separating detection and classification into two models, we can do the follow
 
 ### Traffic light detection
 The traffic light detection is a **MobileNet Single Shot Detector (SSD)** architecture, provided and pretrained on the COCO dataset by Tensorflow. Even if its inference is still very time consuming in real-time situations, its performance is much better than compared to models like **Faster RCNN** by keeping an acceptable level of model performance. No fine-tuning was involved, since the detector performed sufficiently on our training set.
+After detecting a set of traffic lights, the detection with highest confidence gets passed to the traffic light classifier.
 
 ### Traffic light classification
-TBD
+The traffic light classification model consists of the following building blocks: 
+- Convolution: 16 filter, filter size = (3,3), ReLu
+- MaxPooling: pooling size = (2,2)
+- Convolution: 32 filter, filter size = (3,3), ReLu
+- MaxPooling: pooling size = (2,2)
+- Dense: 50 nodes, ReLu 
+- Dropout: factor = 0.5
+- Dense: 3 nodes, Softmax
+
+The models accepts resized images of shape (32,32,3) as inputs.
 
 ## Planning
 The _Planning_ _Subsystem_ is responsible for generating a trajectory through the world to get us to a final target. The _PLanning_ _Subsystem_ consists of two ROS nodes. The _Waypoint Loader_ and the _Waypoint Updater_ node.
