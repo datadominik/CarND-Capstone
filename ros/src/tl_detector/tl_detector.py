@@ -97,6 +97,8 @@ class TLDetector(object):
         '''
 
 
+
+
         if self.state != state:
             self.state_count = 0
             self.state = state
@@ -109,8 +111,12 @@ class TLDetector(object):
             self.last_state = self.state
             light_wp = light_wp if state == TrafficLight.RED else -1
             self.last_wp = light_wp
+            if state == TrafficLight.RED:
+                rospy.logwarn(light_wp)
             self.upcoming_red_light_pub.publish(Int32(light_wp))
         else:
+            if state == TrafficLight.RED:
+                rospy.logwarn(self.last_wp)
             self.upcoming_red_light_pub.publish(Int32(self.last_wp))
         self.state_count += 1
 
@@ -198,16 +204,20 @@ class TLDetector(object):
                 stop_line.position.x = stop_line_position[0]
                 stop_line.position.y = stop_line_position[1]
 
-                light_waypoint = self.get_closest_waypoint(stop_line)
+                stop_line_waypoint = self.get_closest_waypoint(stop_line)
+                light_waypoint = self.get_closest_waypoint(light.pose.pose)
 
                 if min_dist < MIN_DIST_THRESHOLD and car_waypoint < light_waypoint:
-                    # traffic light ahead
                     state = self.get_light_state(light)
 
                     if state is None:
-                        return light_waypoint, self.last_state
+                        return stop_line_waypoint, self.last_state
                     else:
-                        return light_waypoint, state
+                        return stop_line_waypoint, state
+
+                elif min_dist < MIN_DIST_THRESHOLD:
+                    return self.last_wp, self.last_state
+
                 else:
                     return -1, TrafficLight.UNKNOWN
 
