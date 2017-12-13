@@ -17,6 +17,7 @@ The figure below shows the system architecture comprising the __Perception__, th
 </figure>
 
 ## Perception
+### Overview
 The perception component of our system in composed of two Deep Learning models:
 - **Traffic light detection**
 - **Traffic light classification**
@@ -33,6 +34,12 @@ By separating detection and classification into two models, we can do the follow
 <a href="url"><img src="./imgs/process.png" width="1024" ></a>
 <figcaption>Perception process overview</figcaption>
 </figure>
+
+### Traffic light detection
+TBD
+
+### Traffic light classification
+TBD
 
 ## Planning
 The _Planning_ _Subsystem_ is responsible for generating a trajectory through the world to get us to a final target. The _PLanning_ _Subsystem_ consists of two ROS nodes. The _Waypoint Loader_ and the _Waypoint Updater_ node.
