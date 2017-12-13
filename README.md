@@ -11,7 +11,7 @@ The goal of this project is to implement core functionalities of a self-driving 
 | Team member | Main responsibility | Linkedin profile |
 |-------------|---------------------|------------------|
 | Will        | Controller          |                  |
-| Dominik     | Perception          |                  |
+| Dominik Schniertshauer     | Perception          |     https://www.linkedin.com/in/dominik-schniertshauer-18975056             |
 | Rudi        | Waypoint updater    |                  |
 | Chris       | Testing             |                  |
 
