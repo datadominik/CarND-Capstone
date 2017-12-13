@@ -41,15 +41,17 @@ After detecting a set of traffic lights, the detection with highest confidence g
 
 ### Traffic light classification
 The traffic light classification model consists of the following building blocks: 
-- Convolution: 16 filter, filter size = (3,3), ReLu
-- MaxPooling: pooling size = (2,2)
-- Convolution: 32 filter, filter size = (3,3), ReLu
-- MaxPooling: pooling size = (2,2)
-- Dense: 50 nodes, ReLu 
-- Dropout: factor = 0.5
-- Dense: 3 nodes, Softmax
+- **Convolution:** 16 filter, filter size = (3,3), ReLu
+- **MaxPooling:** pooling size = (2,2)
+- **Convolution:** 32 filter, filter size = (3,3), ReLu
+- **MaxPooling:** pooling size = (2,2)
+- **Dense:** 50 nodes, ReLu 
+- **Dropout:** factor = 0.5
+- **Dense:** 3 nodes, Softmax
 
-The models accepts resized images of shape (32,32,3) as inputs.
+The models accepts resized images of shape (32,32,3) as inputs. As training data we used the already annotated images of Anthony Sarkis, which were shared in an article of Vatsal Srivastava. (https://becominghuman.ai/traffic-light-detection-tensorflow-api-c75fdbadac62) Thank you very much for this. 
+
+During training, various augmentation techniques like shifts, zooms, rotations or horizontal flips were used. We used *adam* as an optimizer to improve the *categorical crossentropy* of a validation dataset as much as possible. After 150 epochs, the best model was chosen based on its validation score and transformed to a frozen inference graph. 
 
 ## Planning
 The _Planning_ _Subsystem_ is responsible for generating a trajectory through the world to get us to a final target. The _PLanning_ _Subsystem_ consists of two ROS nodes. The _Waypoint Loader_ and the _Waypoint Updater_ node.
