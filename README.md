@@ -36,7 +36,7 @@ By separating detection and classification into two models, we can do the follow
 </figure>
 
 ### Traffic light detection
-TBD
+The traffic light detection is a **MobileNet Single Shot Detector (SSD)** architecture, provided and pretrained on the COCO dataset by Tensorflow. Even if its inference is still very time consuming in real-time situations, its performance is much better than compared to models like **Faster RCNN** by keeping an acceptable level of model performance. No fine-tuning was involved, since the detector performed sufficiently on our training set.
 
 ### Traffic light classification
 TBD
