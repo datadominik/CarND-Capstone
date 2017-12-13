@@ -17,6 +17,18 @@ The figure below shows the system architecture comprising the __Perception__, th
 </figure>
 
 ## Perception
+The perception component of our system in composed of two Deep Learning models:
+- **Traffic light detection**
+- **Traffic light classification**
+
+The reason of having two seperate models instead of a single one is **performance**. The detection part is always working on the whole images, that it's receiving through a subscription to the image node. Those images introduce more variance, since many more different objects and surroundings than just traffic lights are present. So for detection two factors will make it necessary, to have a model with many parameters.
+- the input of the model will be rather big
+- the model needs to be able dealing with more variance in the data
+
+The classification of traffic lights in turn is a rather easy job. The variance of images to process is limited and ther size is just a fraction of the original image.
+
+By separating detection and classification into two models, we can do the following: if the car is standing at a stopline and already detected the position of a traffic light with a high enough confidence, there is no need to return the detection step. By only doing the classification on the already known traffic light position, ressources are saved and the inference for perception of a green light can be speeded up by a factor between 10 to 100. 
+
 <figure>
 <a href="url"><img src="./imgs/process.png" width="1024" ></a>
 <figcaption>Perception process overview</figcaption>
