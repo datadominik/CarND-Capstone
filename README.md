@@ -7,7 +7,7 @@ The goal of this project is to implement core functionalities of a self-driving 
 - Waypoint following
 - Control
 
-## Team TBD
+## Team
 | Team member | Main responsibility | Email |
 |-------------|---------------------|------------------|
 | Will        | Controller          |                  |
