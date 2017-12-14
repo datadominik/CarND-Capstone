@@ -8,12 +8,12 @@ The goal of this project is to implement core functionalities of a self-driving 
 - Control
 
 ## Team TBD
-| Team member | Main responsibility | Linkedin profile |
-|-------------|---------------------|------------------|
-| Will        | Controller          |                  |
-| Dominik     | Perception          |                  |
-| Rudi        | Waypoint updater    |                  |
-| Chris       | Testing             |                  |
+| Team member | Main responsibility | Linkedin profile | Email |
+|-------------|---------------------|------------------|-------|
+| Will        | Controller          |                  |       |
+| Dominik Schniertshauer     | Perception          |     https://www.linkedin.com/in/dominik-schniertshauer-18975056 |   |
+| Rudolf Dittrich | Waypoint updater|                  |      rudi.dittrich77@gmail.com  |
+| Chris       | Testing             |                  |      |
 
 
 ## System Architecture
