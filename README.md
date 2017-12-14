@@ -11,7 +11,7 @@ The goal of this project is to implement core functionalities of a self-driving 
 | Team member | Main responsibility | Email |
 |-------------|---------------------|------------------|
 | Will        | Controller          |                  |
-| Dominik Schniertshauer     | Perception  |     dominik.schniertshauer@gmail.com |   
+| Dominik Schniertshauer     | Perception  |     dominik.schniertshauer@googlemail.com |   
 | Rudolf Dittrich | Waypoint updater| rudi.dittrich77@gmail.com  |
 | Chris       | Testing             |         |
 
