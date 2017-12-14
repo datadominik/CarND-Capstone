@@ -12,8 +12,7 @@ from geometry_msgs.msg import TwistStamped
 import numpy as np
 import yaml
 
-STATE_COUNT_THRESHOLD = 2
-MIN_DIST_THRESHOLD = 100
+
 
 class TLDetector(object):
     def __init__(self):
@@ -27,6 +26,15 @@ class TLDetector(object):
 
         config_string = rospy.get_param("/traffic_light_config")
         self.config = yaml.load(config_string)
+
+        self.is_site = self.config['detector']['is_site']
+        rospy.logwarn(self.is_site)
+        self.state_count_threshold = 2
+
+        if self.is_site:
+            self.min_dist_threshold = 25
+        else:
+            self.min_dist_threshold = 100
 
         self.upcoming_red_light_pub = rospy.Publisher('/traffic_waypoint', Int32, queue_size=1)
 
@@ -80,11 +88,16 @@ class TLDetector(object):
 
         """
 
+        if self.is_site:
+            ignore_count = 2
+        else:
+            ignore_count = 5
+
         self.has_image = True
         self.camera_image = msg
 
         self.n_ignore += 1
-        if self.n_ignore % 5 != 0:
+        if self.n_ignore % ignore_count != 0:
             return
 
         light_wp, state = self.process_traffic_lights()
@@ -96,9 +109,6 @@ class TLDetector(object):
         used.
         '''
 
-
-
-
         if self.state != state:
             self.state_count = 0
             self.state = state
@@ -107,7 +117,7 @@ class TLDetector(object):
                     rospy.logwarn("RED")
                 elif state == TrafficLight.GREEN:
                     rospy.logwarn("GREEN")
-        elif self.state_count >= STATE_COUNT_THRESHOLD:
+        elif self.state_count >= self.state_count_threshold:
             self.last_state = self.state
             light_wp = light_wp if state == TrafficLight.RED else -1
             self.last_wp = light_wp
@@ -144,7 +154,6 @@ class TLDetector(object):
 
         """
 
-        ### TBD - error handling if waypoints are not yet available
         dist = [self.get_distance(self.get_coordinates(pose), self.get_coordinates(waypoint.pose.pose))
                 for waypoint in self.waypoints.waypoints]
 
@@ -172,7 +181,7 @@ class TLDetector(object):
             detection = True
 
         #Get classification
-        return self.light_classifier.get_classification(cv_image, detection)
+        return self.light_classifier.get_classification(cv_image, detection, self.is_site)
 
     def process_traffic_lights(self):
         """Finds closest visible traffic light, if one exists, and determines its
@@ -207,7 +216,7 @@ class TLDetector(object):
                 stop_line_waypoint = self.get_closest_waypoint(stop_line)
                 light_waypoint = self.get_closest_waypoint(light.pose.pose)
 
-                if min_dist < MIN_DIST_THRESHOLD and car_waypoint < light_waypoint:
+                if min_dist < self.min_dist_threshold and car_waypoint < light_waypoint:
                     state = self.get_light_state(light)
 
                     if state is None:
@@ -215,7 +224,7 @@ class TLDetector(object):
                     else:
                         return stop_line_waypoint, state
 
-                elif min_dist < MIN_DIST_THRESHOLD:
+                elif min_dist < self.min_dist_threshold:
                     return self.last_wp, self.last_state
 
                 else:

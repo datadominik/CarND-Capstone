@@ -57,12 +57,16 @@ class TrafficLightModel():
 
         self.last_confidence = 0
 
-    def predict(self, image, detection):
+    def predict(self, image, detection, is_site):
         light_states = [TrafficLight.GREEN, TrafficLight.RED, TrafficLight.YELLOW]
 
         image = np.asarray(image, dtype="uint8")
 
-        image_np = imresize(image, (200, 150))
+        if is_site:
+            image_np = np.copy(image)
+        else:
+            image_np = imresize(image, (150, 200))
+
         img_height = image_np.shape[0]
         img_width = image_np.shape[1]
 
