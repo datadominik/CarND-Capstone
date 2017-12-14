@@ -13,7 +13,7 @@ The goal of this project is to implement core functionalities of a self-driving 
 | Will        | Controller          |                  |
 | Dominik Schniertshauer     | Perception  |     dominik.schniertshauer@googlemail.com |   
 | Rudolf Dittrich | Waypoint updater| rudi.dittrich77@gmail.com  |
-| Chris       | Testing             |         |
+| Chris Guarino       | Testing             | cguarino@fienuxmotors.com        |
 
 
 ## System Architecture
