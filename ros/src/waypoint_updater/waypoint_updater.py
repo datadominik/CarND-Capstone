@@ -68,6 +68,8 @@ class WaypointUpdater(object):
         self.final_wp = -1
         self.lock = threading.Lock()
 
+        self.loggedStopEvent = False
+
         # Start processing loop
         self.run()
 
@@ -81,8 +83,10 @@ class WaypointUpdater(object):
         if current_velocity_x < 0.0001:
             # if self.current_state == WAIT:
             #     rospy.logwarn("Wait_waypoint: {0}, tl_waypoint: {1}".format(self.next_wp_idx, self.next_tl_wp))
-            if self.current_state == STOP:
+            if self.current_state == STOP and self.loggedStopEvent == False:
                 rospy.logwarn("Stopped_waypoint: {0}, final_waypoint: {1}".format(self.next_wp_idx, self.final_wp))
+                self.loggedStopEvent = True
+
 
 
     def pose_cb(self, msg):
