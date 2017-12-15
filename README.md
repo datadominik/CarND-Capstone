@@ -10,7 +10,7 @@ The goal of this project is to implement core functionalities of a self-driving 
 ## Team
 | Team member | Main responsibility | Email |
 |-------------|---------------------|------------------|
-| Will        | Controller          |                  |
+| William Fallas        | Controller          | wiler19@gmail.com                 |
 | Dominik Schniertshauer     | Perception  |     dominik.schniertshauer@googlemail.com |   
 | Rudolf Dittrich | Waypoint updater| rudi.dittrich77@gmail.com  |
 | Chris Guarino       | Testing             | cguarino@fienuxmotors.com        |
